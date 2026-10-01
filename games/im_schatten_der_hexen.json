@@ -1,0 +1,158 @@
+{
+  "id": "harz-hexen",
+  "title": "Im Schatten der Hexen",
+  "subtitle": "Akte Geistmühle ❖ Das 60. Wiegenfest",
+  "region": "Harz (Bodetal & Oberharz)",
+  "timeEst": "ca. 2-3 Std.",
+  "previewImage": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80",
+  "description": "Ein atmosphärischer Mystery-Fall auf den Spuren von Kathrin R. Hotowetz. Erforsche mit deiner Familie alte Schutzbünde und reale Kraftorte im Harz – bis sich am Ziel ein persönliches Geheimnis zum 60. Wiegenfest offenbart.",
+  "roles": {
+    "player": {
+      "pin": "1966",
+      "name": "Die Suchende"
+    },
+    "guardians": [
+      {
+        "pin": "2001",
+        "name": "Hüter des Weges",
+        "note": "Navigation & Pfade: Führt die Gruppe sicher zu den Koordinaten und überwacht die Route."
+      },
+      {
+        "pin": "2002",
+        "name": "Hüter des Wissens",
+        "note": "Sagen & Chroniken: Trägt die historischen Hintergründe und Hotowetz-Passagen vor."
+      },
+      {
+        "pin": "2003",
+        "name": "Hüter der Gegenstände",
+        "note": "Relikte & Schatullen: Verwahrt die Siegel, Pergamente und die finale Geburtstagsschatulle."
+      }
+    ],
+    "admin": {
+      "pin": "1989",
+      "name": "Spielleitung (Admin)"
+    }
+  },
+  "stations": [
+    {
+      "id": 1,
+      "roman": "Station I",
+      "title": "Das Erwachen an der Geistmühle",
+      "location": "Geistmühle am See, Halberstadt",
+      "coords": [51.9056, 11.0631],
+      "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1000&q=80",
+      "story": "Der Morgennebel liegt über den stillen Wassern von Halberstadt. Hier, am historischen Sitz des Geistmühle-Verlags und der Autorin Kathrin R. Hotowetz, beginnt unsere Akte. Die alten Schriften berichten von einem geheimen Schutzbund, der im Verborgenen über das Gleichgewicht des Harzes wacht. Vor genau sechzig Jahren – im Sommer 1966 – wurde das Siegel der Mühle neu geprägt. Ein uraltes Zeichen am Wasser birgt den ersten Hinweis.",
+      "riddle": {
+        "question": "Welches historische Element der Mühle trieb über Jahrhunderte das Mahlwerk am Wasser an und gilt als Symbol für den ewigen Kreis der Zeit?",
+        "type": "choice",
+        "options": [
+          "DAS MÜHLRAD",
+          "DER DAMPFKESSEL",
+          "DAS SCHWERT"
+        ],
+        "answer": "DAS MÜHLRAD",
+        "hint": "Es ist aus schwerem Eichenholz gefertigt und dreht sich unaufhörlich durch die Kraft der Holtemme."
+      },
+      "dossier": {
+        "title": "Akte I: Das Pergament des Ursprungs",
+        "text": "Eintrag der Chronik: 'Im Jahre 1966 wurde eine Ahnentochter geboren. Um sie vor den Schatten zu schützen, wurde ihr Name in vier Siegel gehüllt. Ihr Weg soll sie durch Fels und Schlucht führen, wenn sechzig Sommer vollendet sind.'"
+      },
+      "guardianNote": "Hüter des Weges führt zum Seeufer. Hüter des Wissens erzählt von der Geistmühle. Hüter der Gegenstände überreicht das erste Wachssiegel und die lederne Ermittlungsmappe."
+    },
+    {
+      "id": 2,
+      "roman": "Station II",
+      "title": "Der steinerne Schutzwall",
+      "location": "Großvaterfelsen & Teufelsmauer, Blankenburg",
+      "coords": [51.7865, 10.9634],
+      "image": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80",
+      "story": "Die Fährte führt an den Felskamm der Teufelsmauer bei Blankenburg. Wie der Rücken eines versteinerten Drachens ragt der Sandstein aus dem Harzvorland. Die Sage berichtet von einer Wette zwischen Schöpfer und Teufel um das Land. Für den Schutzbund war dieses Bollwerk seit jeher ein unüberwindbarer Schild gegen das Böse.",
+      "riddle": {
+        "question": "Aus welchem extrem harten Gestein der Kreidezeit besteht dieser uralte Schutzwall am Großvaterfelsen?",
+        "type": "choice",
+        "options": [
+          "QUARZITSANDSTEIN",
+          "SCHWARZER BASALT",
+          "WEICHER KALKSTEIN"
+        ],
+        "answer": "QUARZITSANDSTEIN",
+        "hint": "Es ist ein extrem harter, weiß-grauer Sandstein, der Jahrmillionen Wind und Wetter trotzte."
+      },
+      "dossier": {
+        "title": "Akte II: Das Schild der Wächterinnen",
+        "text": "Chronik-Fragment: 'Die Zähigkeit dieses Steins ging auf die neugeborene Ahnin über. Sechzig Sommer lang sollte ihr Herz stark bleiben wie der Fels, geliebt von jenen, die sie umgeben, und unerschütterlich im Sturm.'"
+      },
+      "guardianNote": "Hüter des Weges leitet den Aufstieg zum Großvaterfelsen. Hüter des Wissens rezitiert die Teufelssage. Hüter der Gegenstände übergibt einen Quarzit-Splitter im Samtbeutel."
+    },
+    {
+      "id": 3,
+      "roman": "Station III",
+      "title": "Die Schlucht der Mythen & der Königssprung",
+      "location": "Bodetal & Roßtrappe, Thale",
+      "coords": [51.7342, 11.0189],
+      "image": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1000&q=80",
+      "story": "Tief und gewaltig schneidet sich die Bode in das Granitmassiv des Harzes. Hier tosen die wilden Strudel des Hexenkessels. Hoch oben auf der Roßtrappe erinnert der gewaltige Felsabdruck an den kühnen Sprung der Prinzessin Brunhilde über den 400 Meter tiefen Abgrund, um dem finsteren Riesen Bodo zu entkommen.",
+      "riddle": {
+        "question": "Welches königliche Kleinod verlor Brunhilde der Sage nach bei ihrem gewagten Sprung in die schäumenden Tiefen der Bode?",
+        "type": "choice",
+        "options": [
+          "IHRE GOLDENE KRONE",
+          "IHREN SILBERNEN RING",
+          "IHR SAMTENES GEWAND"
+        ],
+        "answer": "IHRE GOLDENE KRONE",
+        "hint": "Das Herrschaftszeichen sank auf den Grund des Hexenkessels, wo Bodo es bis heute bewacht."
+      },
+      "dossier": {
+        "title": "Akte III: Der Schlüssel des Schicksals",
+        "text": "Ermittlungsbefund: 'Die Suchende bewies den Mut der Prinzessin. Die wahre Krone des Lebens empfängt sie nicht durch Gold, sondern durch sechzig Jahre Herzensgüte und Klugheit. Ein geschmiedeter Schlüssel bindet ihr Schicksal an das letzte Tor.'"
+      },
+      "guardianNote": "Hüter des Wissens erzählt die Flucht der Brunhilde. Hüter der Gegenstände übergibt einen antiken Metallschlüssel. Danach gemeinsame Weiterfahrt ins Bergrefugium Hohegeiß!"
+    },
+    {
+      "id": 4,
+      "roman": "Station IV",
+      "title": "Die Nebelwälder des Oberharzes",
+      "location": "Bergwald & Grenzpfade, Hohegeiß bei Braunlage",
+      "coords": [51.6625, 10.6698],
+      "image": "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1000&q=80",
+      "story": "Auf über 600 Metern Höhe hüllen dichte Bergwälder die alte Harzer Grenze bei Hohegeiß ein. Hier, fernab der Täler, lag das sicherste Refugium des Schutzbundes. Alte Grenzsteine und bemooste Pfade markieren den Übergang. Die Ahnentafel der Weißen Frauen liegt hier verborgen.",
+      "riddle": {
+        "question": "Welches mächtige Wappentier ziert seit Heinrich dem Löwen traditionell die historischen Grenzsäulen und Herrscherhäuser dieser Harzregion?",
+        "type": "choice",
+        "options": [
+          "DER LÖWE",
+          "DER AUERHAHN",
+          "DER HIRSCH"
+        ],
+        "answer": "DER LÖWE",
+        "hint": "Es ist der König der Tiere, Sinnbild für Kraft, Mut und königlichen Schutz."
+      },
+      "dossier": {
+        "title": "Akte IV: Die Ahnentafel der Weißen Frauen",
+        "text": "Die letzte Entschlüsselung: 'Die Chronik offenbart den Stammbaum. Die Blutlinie der Schutzherrinnen endete nicht in alten Zeiten – sie führt lückenlos weiter bis zu einer Tochter, die im Jahr 1966 geboren wurde. Die Ermittlerin blickt in den Spiegel ihrer selbst.'"
+      },
+      "guardianNote": "Hüter des Weges führt entlang der historischen Grenzsteine. Hüter des Wissens erklärt die Bedeutung des Bergdorfs Hohegeiß. Hüter der Gegenstände übergibt eine versiegelte Pergamentrolle mit dem Stammbaum."
+    },
+    {
+      "id": 5,
+      "roman": "Station V",
+      "title": "Das 60. Wiegenfest: Die Krönung der Ahnentochter",
+      "location": "Refugium Hohegeiß (Aussichtspunkt & Kaminlounge)",
+      "coords": [51.6640, 10.6650],
+      "image": "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1000&q=80",
+      "story": "Der Kreis hat sich geschlossen. Die vier Wächtersiegel der Erde, des Felsens, der Schlucht und des Bergwaldes sind vereint. Vor der Suchenden steht die große, versiegelte Kassette der Hüter. Nun muss das eine geheime Jahr eingegeben werden, das den Beginn dieses 60-jährigen Weges besiegelte.",
+      "riddle": {
+        "question": "Welche vierstellige Jahreszahl verbindet den Anbeginn des Bundes mit der Vollendung von sechzig gesegneten Lebensjahren?",
+        "type": "text",
+        "answer": "1966",
+        "hint": "Das Geburtsjahr der Suchenden – der Schlüssel zur Schatulle und zum Fest!"
+      },
+      "dossier": {
+        "title": "Das Große Siegel des 60. Lebensjahres",
+        "text": "FEIERLICHE ENTHÜLLUNG: 'Du hast den Fall nicht nur als Meisterdetektivin gelöst – du BIST die Heldin unserer Geschichte! Kathrin R. Hotowetz erzählt von Schutz, Mut und Treue im Harz – Werte, die du seit 60 Jahren unserer Familie schenkst. Herzlichen Glückwunsch zum 60. Geburtstag, liebe Mama!'"
+      },
+      "guardianNote": "Alle Hüter treten zusammen: Die Schatulle wird mit dem Schlüssel aus Station III und dem Code 1966 geöffnet. Übergabe des eigentlichen Geburtstagsgeschenks und feierliches Anstoßen!"
+    }
+  ]
+}

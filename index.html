@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>escape.labs ❖ by forester.labs</title>
+
+    <meta name="theme-color" id="meta-theme-color" content="#131317">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="escape.labs">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Comfortaa:wght@600;700&family=Playfair+Display:ital,wght@0,600;1,600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet & QR Scanner -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        :root {
+            --accent: #e50914;
+            --accent-glow: rgba(229, 9, 20, 0.35);
+            --bg-outer: #09090b;
+            --bg-inner: #131317;
+            --text-color: #f4f4f7;
+            --text-muted: #8b8b96;
+            --border: rgba(255, 255, 255, 0.08);
+            --glass: rgba(19, 19, 23, 0.97);
+            --font-size: 16px;
+        }
+
+        html { font-size: var(--font-size); }
+
+        body.light-mode {
+            --bg-outer: #f0f2f5;
+            --bg-inner: #ffffff;
+            --text-color: #121215;
+            --text-muted: #6c6c77;
+            --border: rgba(0, 0, 0, 0.08);
+            --glass: rgba(255, 255, 255, 0.98);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'All Round Gothic', 'Allround Gothic', 'Comfortaa', 'Poppins', sans-serif;
+            background-color: var(--bg-outer);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background 0.25s ease, color 0.25s ease;
+        }
+
+        /* SPLASH SCREEN */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #050507; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 99999;
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        #splash-screen.fade-out { opacity: 0; transform: scale(1.05); pointer-events: none; }
+        .splash-logo {
+            font-size: 2.3rem; font-weight: 700; letter-spacing: 2px; color: #fff;
+            text-transform: lowercase; margin-bottom: 6px;
+        }
+        .splash-logo span { color: var(--accent); }
+        .splash-tag { font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+
+        /* HEADER */
+        header {
+            position: sticky; top: 0; z-index: 50;
+            padding: 10px 14px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--bg-inner); border-bottom: 1px solid var(--border);
+        }
+
+        .header-left { display: flex; align-items: center; }
+
+        .brand-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            text-align: center;
+        }
+        .brand-title span { color: var(--accent); }
+
+        @media (max-width: 420px) {
+            .brand-title {
+                position: static;
+                transform: none;
+                flex: 1;
+                text-align: center;
+                font-size: 1.15rem;
+                padding-left: 6px;
+            }
+        }
+
+        .icon-btn {
+            cursor: pointer; padding: 7px; border-radius: 50%; transition: 0.2s;
+            font-size: 23px; display: inline-flex; align-items: center; justify-content: center;
+            color: var(--text-color); background: transparent; border: none;
+        }
+        .icon-btn:hover { background: rgba(128,128,128,0.12); color: var(--accent); }
+
+        /* VIEWPORT */
+        main {
+            flex: 1; display: flex; justify-content: center; align-items: flex-start;
+            padding: 16px 12px 20px 12px;
+        }
+        body.in-game main { padding-bottom: 80px; }
+        .view-section { display: none; width: 100%; max-width: 520px; animation: fadeIn 0.25s ease; }
+        @media (min-width: 768px) {
+            .view-section { max-width: 620px; }
+            main { padding: 24px 20px; }
+        }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* GLAS-KARTEN */
+        .glass-card {
+            background-color: var(--bg-inner); border: 1px solid var(--border);
+            border-radius: 22px; padding: 22px 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 16px; position: relative;
+        }
+        .badge {
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+            color: var(--accent); display: inline-block; margin-bottom: 6px;
+        }
+
+        .hub-tabs {
+            display: flex; gap: 8px; margin-bottom: 16px; background: rgba(128,128,128,0.06);
+            padding: 4px; border-radius: 14px; border: 1px solid var(--border);
+        }
+        .hub-tab-btn {
+            flex: 1; padding: 10px; border-radius: 10px; border: none; background: transparent;
+            color: var(--text-muted); font-size: 0.85rem; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit;
+        }
+        .hub-tab-btn.active {
+            background: var(--accent); color: #fff; box-shadow: 0 2px 10px rgba(229,9,20,0.3);
+        }
+
+        .side-panel {
+            position: fixed; top: 0; width: 100%; max-width: 320px; height: 100%;
+            background: var(--glass); backdrop-filter: blur(25px); z-index: 1000;
+            transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1); padding: 24px 20px;
+            overflow-y: auto; color: var(--text-color);
+        }
+        #menu-panel { left: -100%; border-right: 1px solid var(--border); }
+        #settings-panel { right: -100%; border-left: 1px solid var(--border); }
+        #menu-panel.active { left: 0; box-shadow: 10px 0 40px rgba(0,0,0,0.4); }
+        #settings-panel.active { right: 0; box-shadow: -10px 0 40px rgba(0,0,0,0.4); }
+
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+        }
+        .panel-header h2 { font-size: 0.95rem; letter-spacing: 1px; font-weight: 700; }
+        .menu-link {
+            display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+            border-radius: 14px; cursor: pointer; transition: 0.2s; margin-bottom: 6px;
+            font-weight: 600; font-size: 0.9rem; color: var(--text-color); text-decoration: none;
+        }
+        .menu-link:hover { background: rgba(128, 128, 128, 0.1); color: var(--accent); }
+        .menu-divider {
+            font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
+            letter-spacing: 1px; text-transform: uppercase; margin: 18px 0 8px 10px;
+        }
+
+        .clean-input {
+            width: 100%; padding: 14px; border-radius: 14px;
+            border: 1px solid var(--border); background: rgba(128,128,128,0.06);
+            color: var(--text-color); outline: none; font-size: 1rem; margin: 10px 0; font-family: inherit;
+        }
+        .clean-input:focus { border-color: var(--accent); }
+
+        .btn-main {
+            width: 100%; background: var(--accent); color: #fff;
+            border: none; padding: 14px; border-radius: 14px;
+            font-weight: 700; font-size: 0.95rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25); font-family: inherit;
+        }
+        .btn-main:active { transform: scale(0.98); }
+        .btn-sub {
+            width: 100%; background: rgba(128,128,128,0.08); color: var(--text-color);
+            border: 1px solid var(--border); padding: 12px; border-radius: 14px;
+            font-weight: 600; cursor: pointer; font-size: 0.85rem; margin-top: 6px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit;
+        }
+
+        .game-thumb-card {
+            background: rgba(128,128,128,0.04); border: 1px solid var(--border);
+            border-radius: 18px; padding: 18px; margin-bottom: 12px;
+            cursor: pointer; transition: 0.2s;
+        }
+        .game-thumb-card:hover { border-color: var(--accent); }
+
+        .preview-image {
+            width: 100%; height: 180px; object-fit: cover;
+            border-radius: 14px; margin: 10px 0; border: 1px solid var(--border); background: #111;
+        }
+
+        .toast-banner {
+            background: rgba(229, 9, 20, 0.12); border-left: 3px solid var(--accent);
+            padding: 12px 14px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 14px;
+        }
+
+        #game-bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+            background: var(--bg-inner); border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; align-items: center;
+            z-index: 100; max-width: 620px; margin: 0 auto; backdrop-filter: blur(10px);
+        }
+        .nav-btn {
+            background: none; border: none; color: var(--text-muted);
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            font-family: inherit; font-size: 0.72rem; cursor: pointer; flex: 1;
+        }
+        .nav-btn.active { color: var(--accent); font-weight: 700; }
+        .nav-btn .material-symbols-rounded { font-size: 22px; }
+
+        #game-map {
+            width: 100%; height: 350px; border-radius: 14px; border: 1px solid var(--border); margin: 12px 0;
+        }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+            z-index: 2000; display: none; align-items: center; justify-content: center; padding: 14px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--bg-inner); border: 1px solid var(--border);
+            border-radius: 20px; width: 100%; max-width: 480px; padding: 20px; max-height: 92vh; overflow-y: auto;
+        }
+
+        .round-icon-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: 1px solid var(--border); background: rgba(128,128,128,0.08);
+            color: var(--text-color); display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .round-icon-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(229, 9, 20, 0.1); }
+
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 6px; background: rgba(128,128,128,0.2); border-radius: 3px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; border: 2px solid var(--bg-inner);
+        }
+        input[type="color"] {
+            -webkit-appearance: none; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; background: none;
+        }
+        input[type="color"]::-webkit-color-swatch { border-radius: 50%; border: 1px solid var(--border); }
+
+        footer {
+            padding: 22px 16px; text-align: center; font-size: 0.78rem;
+            color: var(--text-muted); border-top: 1px solid var(--border); margin-top: auto; line-height: 1.6;
+        }
+        .footer-link { color: var(--text-color); text-decoration: none; font-weight: 600; }
+        .footer-link:hover { color: var(--accent); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <!-- 0. SPLASH SCREEN -->
+    <div id="splash-screen" onclick="App.dismissSplash()">
+        <div class="splash-logo">escape<span>.labs</span></div>
+        <div class="splash-tag">Mini Escape Games for you!</div>
+    </div>
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-left">
+            <button class="icon-btn" onclick="UI.toggle('menu-panel')"><span class="material-symbols-rounded">menu</span></button>
+        </div>
+        <div class="brand-title" onclick="App.showHome()">escape<span>.labs</span></div>
+        <div class="header-right">
+            <button class="icon-btn" onclick="UI.toggle('settings-panel')" title="Einstellungen"><span class="material-symbols-rounded">settings</span></button>
+        </div>
+    </header>
+
+    <!-- LIVE TIPP HÜTER -->
+    <div id="live-hint-bar" class="toast-banner hidden" style="margin: 10px 12px 0 12px;">
+        <strong style="color:var(--accent);">👁️ Funkspruch der Spielleitung:</strong>
+        <div id="live-hint-text"></div>
+    </div>
+
+    <!-- ================================================= -->
+    <!-- MODAL: WERKZEUGKASTEN                             -->
+    <!-- ================================================= -->
+    <div id="modal-toolbox" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-rounded" style="color:var(--accent);">home_repair_service</span> Werkzeugkasten
+                </h3>
+                <button class="icon-btn" onclick="UI.closeToolbox()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+                <button onclick="UI.openToolView('scanner')" class="btn-sub" style="flex-direction:column; padding:14px 8px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:28px; color:var(--accent);">qr_code_scanner</span>
+                    <span>QR-Scanner</span>
+                </button>
+                <button onclick="UI.openToolView('notes')" class="btn-sub" style="flex-direction:column; padding:14px 8px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:28px; color:var(--accent);">edit_note</span>
+                    <span>Notizen & Skizzen</span>
+                </button>
+                <button onclick="App.toggleTorch()" id="btn-tool-torch" class="btn-sub" style="flex-direction:column; padding:14px 8px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:28px; color:var(--accent);">flashlight_on</span>
+                    <span id="lbl-tool-torch">Taschenlampe (Aus)</span>
+                </button>
+                <button onclick="UI.openToolView('compass')" class="btn-sub" style="flex-direction:column; padding:14px 8px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:28px; color:var(--accent);">explore</span>
+                    <span>Kompass</span>
+                </button>
+            </div>
+
+            <div id="toolbox-active-view" class="hidden" style="border-top:1px solid var(--border); padding-top:14px;"></div>
+        </div>
+    </div>
+
+    <!-- ================================================= -->
+    <!-- MODAL: ERSTE SCHRITTE                             -->
+    <!-- ================================================= -->
+    <div id="modal-guide" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem;">Erste Schritte</h3>
+                <button class="icon-btn" onclick="UI.closeGuide()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            
+            <div style="font-size:0.85rem; line-height:1.6; color:var(--text-color);">
+                <div style="margin-bottom:12px;">
+                    <strong style="color:var(--accent);">📲 1. Als App installieren:</strong><br>
+                    • <strong>Android / Chrome:</strong> Tippe oben rechts auf die 3 Punkte ➔ <em>„App installieren“</em>.<br>
+                    • <strong>iPhone / Safari:</strong> Tippe unten auf <em>Teilen</em> <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">ios_share</span> ➔ <em>„Zum Home-Bildschirm“</em>.
+                </div>
+                <div style="margin-bottom:12px;">
+                    <strong style="color:var(--accent);">🌐 2. Spiele laden:</strong><br>
+                    Wechsle auf der Startseite auf <strong>„Online-Store“</strong> und lade die gewünschten Missionen mit einem Klick in deine Bibliothek.
+                </div>
+                <div>
+                    <strong style="color:var(--accent);">🔗 3. Spiel mit Freunden teilen:</strong><br>
+                    Klicke im Spielmenü auf <em>„Link zum Spiel teilen“</em> und schicke den Link per WhatsApp. Das Spiel startet bei deinen Freunden sofort!
+                </div>
+            </div>
+
+            <button onclick="UI.closeGuide()" class="btn-main" style="margin-top:16px;">Verstanden</button>
+        </div>
+    </div>
+
+    <!-- ================================================= -->
+    <!-- MODAL: WAS IST ESCAPE.LABS / FORESTER.LABS & INFO -->
+    <!-- ================================================= -->
+    <div id="modal-about" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-rounded" style="color:var(--accent);">science</span> Über dieses Projekt
+                </h3>
+                <button class="icon-btn" onclick="UI.closeAbout()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            
+            <div style="font-size:0.85rem; line-height:1.6; color:var(--text-color);">
+                <p style="margin-bottom:12px;">
+                    <strong>escape.labs</strong> ist eine experimentelle Plattform für interaktive Outdoor-Escape-Games, Rallyes und persönliche Abenteuer.
+                </p>
+
+                <div style="background:rgba(128,128,128,0.06); border-left:3px solid var(--accent); padding:12px; border-radius:10px; margin-bottom:12px;">
+                    <strong style="color:#fff;">Teil von forester.labs:</strong><br>
+                    Dieses Projekt ist Teil von <strong>forester.labs</strong> – einer privaten Sammlung kleiner Web-Apps, Tools und Widgets, die von Marco Förster gebaut werden.
+                </div>
+
+                <div style="background:rgba(229, 9, 20, 0.08); border:1px solid rgba(229, 9, 20, 0.3); border-radius:12px; padding:12px; margin-bottom:16px; font-size:0.8rem; color:#dedede;">
+                    <strong style="color:var(--accent);">⚠️ Wichtiger Hinweis & Disclaimer:</strong><br>
+                    Ich bin kein hauptberuflicher Software-Entwickler. Alle Apps und Widgets entstehen rein privat, als Hobby und ohne jeden kommerziellen Anspruch. Es besteht <strong>keinerlei Anspruch auf Fehlerfreiheit, Stabilität oder Funktionsgarantie</strong>. Alles ist sehr experimentell – manche Dinge können klemmen, sich verändern oder unerwartet reagieren.
+                </div>
+
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+                    Fragen, Feedback oder ein technischer Fehler aufgefallen? Gerne einfach melden:
+                </p>
+
+                <a href="http://www.marcofoerster.com" target="_blank" class="btn-main" style="text-decoration:none; margin-bottom:8px;">
+                    <span class="material-symbols-rounded">person</span> Website & Kontakt (Marco Förster)
+                </a>
+            </div>
+
+            <button onclick="UI.closeAbout()" class="btn-sub" style="margin-top:6px;">Schließen</button>
+        </div>
+    </div>
+
+    <!-- ================================================= -->
+    <!-- MODAL: TEAM-ROLLEN & PROFIL                       -->
+    <!-- ================================================= -->
+    <div id="modal-team" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem;">Team-Rollen</h3>
+                <button class="icon-btn" onclick="UI.closeTeamModal()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div id="team-roles-content" style="font-size:0.85rem; line-height:1.6;"></div>
+            <button onclick="UI.closeTeamModal()" class="btn-main" style="margin-top:14px;">Schließen</button>
+        </div>
+    </div>
+
+    <!-- MAIN VIEWPORTS -->
+    <main>
+
+        <!-- 1. STARTSEITE: MEINE SPIELE vs. ONLINE STORE -->
+        <section id="view-home" class="view-section active">
+            <div class="glass-card">
+                
+                <div class="hub-tabs">
+                    <button id="tab-btn-local" class="hub-tab-btn active" onclick="App.switchHubTab('local')">
+                        <span class="material-symbols-rounded" style="font-size:18px;">inventory_2</span> Meine Spiele
+                    </button>
+                    <button id="tab-btn-store" class="hub-tab-btn" onclick="App.switchHubTab('store')">
+                        <span class="material-symbols-rounded" style="font-size:18px;">cloud_download</span> Online-Store
+                    </button>
+                </div>
+
+                <!-- ANSICHT 1: INSTALLIERTE SPIELE -->
+                <div id="hub-view-local">
+                    <div id="games-container"></div>
+                </div>
+
+                <!-- ANSICHT 2: ONLINE STORE -->
+                <div id="hub-view-store" class="hidden">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
+                        Verfügbare Szenarien im Store:
+                    </p>
+                    <div id="store-container">
+                        <p style="text-align:center; padding:20px; color:var(--text-muted);">Katalog wird geladen...</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 2. DAS INDIVIDUELLE HAUPTMENÜ EINES SPIELS -->
+        <section id="view-game-menu" class="view-section">
+            <div class="glass-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="badge" id="gm-tag">Missions-Akte</span>
+                    <span id="gm-progress-badge" class="badge" style="color:#22c55e;"></span>
+                </div>
+                
+                <h1 id="gm-title" style="font-size: 1.35rem; margin-bottom: 2px;">Titel</h1>
+                <p id="gm-sub" style="font-size: 0.85rem; color: var(--text-muted);">Untertitel</p>
+
+                <img id="gm-img" class="preview-image" src="" alt="Titelbild">
+
+                <div style="margin: 12px 0; font-size: 0.95rem; line-height: 1.6;" id="gm-desc"></div>
+
+                <div style="background: rgba(128,128,128,0.06); padding: 12px; border-radius: 14px; margin-bottom: 16px; font-size: 0.85rem; color: var(--text-muted);">
+                    📍 <strong>Region:</strong> <span id="gm-region"></span><br>
+                    ⏱️ <strong>Dauer:</strong> <span id="gm-time"></span>
+                </div>
+
+                <button id="btn-gm-continue" onclick="App.openLogin(false)" class="btn-main">
+                    <span class="material-symbols-rounded">play_arrow</span> <span id="lbl-gm-continue">Spielstand fortsetzen</span>
+                </button>
+
+                <button onclick="App.startFreshGame()" class="btn-sub" style="margin-top:8px;">
+                    <span class="material-symbols-rounded">restart_alt</span> Neues Spiel starten
+                </button>
+
+                <button onclick="App.shareCurrentGame()" class="btn-sub" style="margin-top:8px;">
+                    <span class="material-symbols-rounded">share</span> Link zum Spiel teilen
+                </button>
+
+                <button onclick="App.showHome()" class="btn-sub" style="margin-top:8px;">
+                    <span class="material-symbols-rounded">arrow_back</span> Spiel verlassen (Zurück)
+                </button>
+
+                <button onclick="App.deleteCurrentGame()" class="btn-sub" style="color:#ef4444; border-color:rgba(239,68,68,0.25); margin-top: 14px;">
+                    <span class="material-symbols-rounded">delete</span> Spiel aus Bibliothek löschen
+                </button>
+            </div>
+        </section>
+
+        <!-- 3. LOGIN DES SPIELS -->
+        <section id="view-login" class="view-section">
+            <div class="glass-card" style="text-align: center;">
+                <span class="badge">Sicherheitsprüfung</span>
+                <h1 id="login-game-title" style="font-size: 1.3rem; margin-bottom: 4px;">Titel</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Gib deinen 4-stelligen Rollen-PIN ein:</p>
+
+                <input type="password" id="input-pin" class="clean-input" placeholder="••••" maxlength="4" inputmode="numeric" style="text-align:center; font-size:1.4rem; letter-spacing:4px;">
+                <button onclick="App.login()" class="btn-main"><span class="material-symbols-rounded">lock_open</span> Einloggen</button>
+                <div id="login-feedback" style="color:var(--accent); font-size:0.85rem; margin-top:8px;"></div>
+
+                <div id="login-pin-help" style="margin-top:18px; padding-top:12px; border-top:1px solid var(--border); font-size:0.8rem; color:var(--text-muted); text-align:left;"></div>
+                <button onclick="UI.showView('view-game-menu')" class="btn-sub" style="margin-top: 14px;">← Zurück zum Spiel-Menü</button>
+            </div>
+        </section>
+
+        <!-- 4. STATION IM SPIEL -->
+        <section id="view-station" class="view-section">
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <span class="badge" id="st-badge">Station I</span>
+                    <span id="st-location" style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">Ort</span>
+                </div>
+
+                <h1 id="st-title" style="font-size: 1.35rem; margin-bottom: 10px;">Titel</h1>
+                <img id="st-image" class="preview-image hidden" src="" alt="Stationsbild">
+                <div id="st-story" style="margin: 12px 0; line-height: 1.6; font-size: 1rem;"></div>
+
+                <div style="background: rgba(128,128,128,0.06); border: 1px solid var(--border); padding: 16px; border-radius: 14px; margin-top: 14px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent);">✦ DIE PRÜFUNG:</span>
+                    <p id="st-question" style="font-weight: 600; margin: 6px 0 10px 0;"></p>
+                    <div id="quiz-inputs"></div>
+                    <div id="game-feedback" style="text-align: center; font-size: 0.85rem; margin-top: 8px; min-height: 20px;"></div>
+
+                    <div id="auto-hint-box" class="hidden" style="margin-top:12px; border-top:1px dashed var(--border); padding-top:10px; text-align:center;">
+                        <span style="font-size:0.8rem; color:var(--accent);">3 Fehlversuche erkannt:</span>
+                        <button onclick="App.revealAutoHint()" class="btn-sub" style="border-color:var(--accent);"><span class="material-symbols-rounded">lightbulb</span> Tipp anzeigen</button>
+                        <div id="auto-hint-text" class="hidden" style="margin-top:8px; font-style:italic; font-size:0.85rem; color:var(--text-color);"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. DIE KARTE -->
+        <section id="view-map" class="view-section">
+            <div class="glass-card">
+                <span class="badge">Orientierung</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 4px;">Fährtenkarte</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Koordinaten dieses Falls:</p>
+                <div id="game-map"></div>
+                <div id="map-info-text" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-top: 8px;">
+                    Tippe auf die Marker auf der Karte für Details.
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. ERMITTLUNGSAKTE -->
+        <section id="view-dossier" class="view-section">
+            <div class="glass-card">
+                <span class="badge">Dokumente</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 6px;">Ermittlungsakte</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Geborgene Hinweise und Fundstücke:</p>
+                <div id="dossier-items"></div>
+            </div>
+        </section>
+
+        <!-- 7. HÜTER-RAT -->
+        <section id="view-hueter" class="view-section">
+            <div class="glass-card">
+                <span class="badge" style="color:#f59e0b;">Spielleitung</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 14px;">Hüter-Rat</h1>
+
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 14px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Funkspruch senden:</label>
+                    <input type="text" id="hueter-hint-input" class="clean-input" placeholder="Tipp hier eingeben...">
+                    <button onclick="App.sendHint()" class="btn-main"><span class="material-symbols-rounded">send</span> Absenden</button>
+                    <button onclick="App.clearHint()" class="btn-sub">Tipp löschen</button>
+                </div>
+
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border);">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vor-Ort-Notiz (Physische Dinge):</label>
+                    <p id="hueter-note-text" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 6px; font-style: italic;">Lädt...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. ADMIN TOOLS -->
+        <section id="view-admin" class="view-section">
+            <div class="glass-card">
+                <span class="badge" style="color:var(--accent);">Admin Dashboard</span>
+                <h1 id="admin-game-title" style="font-size: 1.35rem; margin-bottom: 4px;">Zentrale Steuerung</h1>
+                <p id="admin-game-sub" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Volle Kontrolle über die aktive Mission</p>
+
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 14px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Station sofort anspringen:</label>
+                    <div id="admin-jump-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;"></div>
+                </div>
+
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 14px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Notfall-Hinweis an alle senden:</label>
+                    <input type="text" id="admin-hint-input" class="clean-input" placeholder="Spielleiter-Tipp eingeben...">
+                    <button onclick="App.sendAdminHint()" class="btn-main"><span class="material-symbols-rounded">campaign</span> Senden</button>
+                </div>
+
+                <button onclick="App.adminUnlockAll()" class="btn-sub" style="margin-bottom:8px;">
+                    <span class="material-symbols-rounded">lock_open</span> Alle Aktenstücke sofort entsperren
+                </button>
+
+                <button onclick="App.resetCurrentMission()" class="btn-sub" style="color:#ef4444; border-color:rgba(239,68,68,0.3); margin-top:8px;">
+                    <span class="material-symbols-rounded">restart_alt</span> Diese Mission komplett auf Anfang zurücksetzen
+                </button>
+
+                <button onclick="UI.showView('view-station')" class="btn-main" style="margin-top: 14px;">
+                    Zur Station wechseln ➔
+                </button>
+            </div>
+        </section>
+
+        <!-- 9. ADMIN-BEREICH (DEV-STUDIO) -->
+        <section id="view-dev-studio" class="view-section">
+            <div class="glass-card">
+                <span class="badge" style="color:var(--accent);">Admin-Bereich</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 4px;">Admin-Studio</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+                    Spiele isoliert testen, validieren & probespielen:
+                </p>
+
+                <div style="background: rgba(128,128,128,0.05); border:1px solid var(--border); padding:14px; border-radius:14px; margin-bottom:14px;">
+                    <strong style="font-size:0.85rem; color:#fff;">JSON-Datei vom PC wählen:</strong>
+                    <input type="file" id="dev-file-input" accept=".json" class="clean-input" style="padding:10px; font-size:0.8rem; margin:8px 0;">
+                    <button onclick="App.devValidateAndSandbox()" class="btn-main" style="font-size:0.85rem; padding:10px;">
+                        <span class="material-symbols-rounded">science</span> In Sandbox testen & probespielen
+                    </button>
+                </div>
+
+                <div id="dev-report-box" class="hidden" style="background:#09090d; border-radius:12px; padding:12px; font-size:0.8rem; line-height:1.6; border:1px solid var(--border); margin-bottom:14px;"></div>
+
+                <button onclick="App.showHome()" class="btn-sub">← Admin-Bereich verlassen</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- UNTERE NAVIGATION (DYNAMISCH AUS DER JSON GESTEUERT) -->
+    <nav id="game-bottom-nav" class="hidden"></nav>
+
+    <!-- FOOTER -->
+    <footer id="app-footer">
+        <div>Ein Produkt von <span style="font-weight:700;">forester.labs</span> ❖ v0.0.1</div>
+        <div style="opacity: 0.6; margin-top: 2px;">made by <a href="http://www.marcofoerster.com" target="_blank" class="footer-link">Marco Förster</a></div>
+    </footer>
+
+    <!-- LINKES HAMBURGER-MENÜ -->
+    <div id="menu-panel" class="side-panel">
+        <div class="panel-header">
+            <h2>NAVIGATION</h2>
+            <button class="icon-btn" onclick="UI.toggle('menu-panel')"><span class="material-symbols-rounded">close</span></button>
+        </div>
+
+        <!-- INHALT 1: VOR DEM SPIEL (HUB-MODUS) -->
+        <div id="menu-hub-content">
+            <div class="menu-divider">Plattform</div>
+            <div class="menu-link" onclick="UI.openGuide(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">help_outline</span> Erste Schritte & Hilfe
+            </div>
+            <div class="menu-link" onclick="UI.openAbout(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">science</span> Was ist escape.labs?
+            </div>
+            <div class="menu-link" onclick="App.switchHubTab('store'); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">cloud_download</span> Online-Store
+            </div>
+        </div>
+
+        <!-- INHALT 2: IM SPIEL (MISSIONS-MODUS) -->
+        <div id="menu-game-content" class="hidden">
+            <div style="background:rgba(128,128,128,0.06); padding:12px; border-radius:14px; border:1px solid var(--border); margin-bottom:14px; text-align:center;">
+                <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Missions-Zeit</div>
+                <div id="timer-display" style="font-size:1.4rem; font-weight:700; color:var(--accent); font-family:monospace; margin:4px 0;">00:00:00</div>
+                <button onclick="App.toggleTimer()" class="btn-sub" style="padding:6px; font-size:0.75rem; margin:0;">
+                    <span class="material-symbols-rounded" id="timer-btn-icon" style="font-size:16px;">pause</span>
+                    <span id="timer-btn-label">Pausieren</span>
+                </button>
+            </div>
+
+            <div class="menu-link" onclick="UI.openToolbox(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded" style="color:var(--accent);">home_repair_service</span> Werkzeugkasten
+            </div>
+
+            <div class="menu-link" onclick="UI.openRoleProfile(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">badge</span> Mein Rollen-Profil
+            </div>
+
+            <div class="menu-link" onclick="UI.openTeamModal(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">groups</span> Team-Rollen
+            </div>
+
+            <div class="menu-divider">Missions-Steuerung</div>
+            <div class="menu-link" onclick="App.leaveGame()" style="color:var(--accent);">
+                <span class="material-symbols-rounded">logout</span> Spiel verlassen
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid var(--border);">
+            <div id="menu-user-status" style="font-size: 0.8rem; color: var(--text-muted);">Kein Spiel geöffnet</div>
+        </div>
+    </div>
+
+    <!-- RECHTES SETTINGS-MENÜ (MIT ADMIN-BEREICH BUTTON) -->
+    <div id="settings-panel" class="side-panel">
+        <div class="panel-header">
+            <h2>EINSTELLUNGEN</h2>
+            <button class="icon-btn" onclick="UI.toggle('settings-panel')"><span class="material-symbols-rounded">close</span></button>
+        </div>
+
+        <div style="margin-bottom: 22px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Erscheinungsbild</label>
+            <div style="display: flex; gap: 14px;">
+                <button id="theme-btn-dark" class="round-icon-btn active" onclick="UI.setTheme('dark')" title="Dunkler Modus">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                </button>
+                <button id="theme-btn-light" class="round-icon-btn" onclick="UI.setTheme('light')" title="Heller Modus">
+                    <span class="material-symbols-rounded">light_mode</span>
+                </button>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 22px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Akzentfarbe</label>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <input type="color" id="accentColorPicker" value="#e50914" oninput="UI.setAccent(this.value)">
+                <span style="font-size:0.85rem; color:var(--text-muted);">Farbe anpassen</span>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 22px;">
+            <label id="lbl-font-size" style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Schriftgröße (16px)</label>
+            <input type="range" id="fontSizeRange" min="13" max="22" value="16" oninput="UI.setFontSize(this.value)">
+        </div>
+
+        <div style="margin-bottom: 22px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Haptik & Feedback</label>
+            <label style="display:flex; align-items:center; gap:10px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" id="check-haptics" onchange="UI.toggleHaptics(this.checked)" checked style="accent-color:var(--accent); width:18px; height:18px;">
+                <span>Vibration bei Rätsellösung</span>
+            </label>
+        </div>
+
+        <!-- HIER DER DEZENTE ADMIN-BEREICH BUTTON -->
+        <div style="margin-top: 50px; padding-top: 15px; border-top: 1px solid var(--border); text-align: center;">
+            <button onclick="App.promptDevAccess()" style="background:none; border:none; color:var(--text-muted); opacity:0.4; font-size:0.75rem; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:4px;">
+                <span class="material-symbols-rounded" style="font-size:15px;">admin_panel_settings</span> Admin-Bereich
+            </button>
+        </div>
+    </div>
+
+    <!-- SCRIPT & ENGINE -->
+    <script>
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        if (isLocalhost && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let r of regs) r.unregister();
+            });
+            caches.keys().then(keys => {
+                for (let k of keys) caches.delete(k);
+            });
+        } else if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+            });
+        }
+
+        let qrScanner = null;
+        let leafletMap = null;
+        let mapMarkers = [];
+        let compassWatchId = null;
+        let videoTrack = null;
+
+        const UI = {
+            toggle(id) { document.getElementById(id).classList.toggle('active'); },
+            showView(viewId, pushHistory = true) {
+                document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+                const el = document.getElementById(viewId);
+                if (el) el.classList.add('active');
+                document.getElementById('menu-panel').classList.remove('active');
+                window.scrollTo(0, 0);
+
+                const inGameViews = ['view-station', 'view-map', 'view-dossier', 'view-hueter', 'view-admin'];
+                const isGaming = inGameViews.includes(viewId);
+                
+                document.body.classList.toggle('in-game', isGaming);
+                document.getElementById('game-bottom-nav').classList.toggle('hidden', !isGaming);
+                document.getElementById('app-footer').classList.toggle('hidden', isGaming || viewId === 'view-dev-studio');
+
+                if (isGaming) this.updateBottomNavState(viewId);
+                if (viewId === 'view-map') setTimeout(() => App.initOrUpdateMap(), 150);
+
+                if (pushHistory) history.pushState({ view: viewId }, '', '#' + viewId);
+            },
+            updateBottomNavState(activeViewId) {
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+                const activeBtn = document.querySelector(`.nav-btn[data-target="${activeViewId}"]`);
+                if (activeBtn) activeBtn.classList.add('active');
+            },
+
+            applyGameTheme(theme) {
+                if (!theme) return;
+                const r = document.documentElement;
+                if (theme.accent) r.style.setProperty('--accent', theme.accent);
+                if (theme.accentGlow) r.style.setProperty('--accent-glow', theme.accentGlow);
+                if (theme.bgOuter) r.style.setProperty('--bg-outer', theme.bgOuter);
+                if (theme.bgInner) r.style.setProperty('--bg-inner', theme.bgInner);
+                if (theme.textColor) r.style.setProperty('--text-color', theme.textColor);
+                if (theme.font) document.body.style.fontFamily = theme.font;
+
+                const metaTheme = document.getElementById('meta-theme-color');
+                if (metaTheme && theme.bgInner) metaTheme.setAttribute('content', theme.bgInner);
+            },
+
+            resetDefaultTheme() {
+                this.initSettings();
+                document.body.style.fontFamily = "'All Round Gothic', 'Allround Gothic', 'Comfortaa', 'Poppins', sans-serif";
+            },
+
+            setTheme(mode) {
+                document.body.className = mode + '-mode';
+                document.getElementById('theme-btn-dark').classList.toggle('active', mode === 'dark');
+                document.getElementById('theme-btn-light').classList.toggle('active', mode === 'light');
+                const metaTheme = document.getElementById('meta-theme-color');
+                if (metaTheme) metaTheme.setAttribute('content', mode === 'dark' ? '#131317' : '#ffffff');
+                localStorage.setItem('escape_theme', mode);
+            },
+            setAccent(color) {
+                document.documentElement.style.setProperty('--accent', color);
+                localStorage.setItem('escape_accent', color);
+            },
+            setFontSize(px) {
+                document.documentElement.style.setProperty('--font-size', px + 'px');
+                document.getElementById('lbl-font-size').innerText = `Schriftgröße (${px}px)`;
+                localStorage.setItem('escape_font_size', px);
+            },
+            toggleHaptics(enabled) {
+                localStorage.setItem('escape_haptics', enabled ? 'true' : 'false');
+            },
+            vibrate(pattern = [60, 50, 60]) {
+                if (localStorage.getItem('escape_haptics') === 'false') return;
+                if (navigator.vibrate) navigator.vibrate(pattern);
+            },
+            initSettings() {
+                const theme = localStorage.getItem('escape_theme') || 'dark';
+                const accent = localStorage.getItem('escape_accent') || '#e50914';
+                const size = localStorage.getItem('escape_font_size') || '16';
+                const haptics = localStorage.getItem('escape_haptics') !== 'false';
+
+                this.setTheme(theme);
+                this.setAccent(accent);
+                document.getElementById('accentColorPicker').value = accent;
+                this.setFontSize(size);
+                document.getElementById('fontSizeRange').value = size;
+                document.getElementById('check-haptics').checked = haptics;
+            },
+
+            /* MODAL STEUERUNG */
+            openGuide() { document.getElementById('modal-guide').classList.add('active'); },
+            closeGuide() { document.getElementById('modal-guide').classList.remove('active'); },
+
+            openAbout() { document.getElementById('modal-about').classList.add('active'); },
+            closeAbout() { document.getElementById('modal-about').classList.remove('active'); },
+
+            openToolbox() {
+                document.getElementById('modal-toolbox').classList.add('active');
+                document.getElementById('toolbox-active-view').classList.add('hidden');
+            },
+            closeToolbox() {
+                if (qrScanner) { qrScanner.stop().then(() => qrScanner.clear()).catch(()=>{}); qrScanner = null; }
+                if (window.DeviceOrientationEvent && compassWatchId) {
+                    window.removeEventListener('deviceorientation', compassWatchId);
+                    compassWatchId = null;
+                }
+                document.getElementById('modal-toolbox').classList.remove('active');
+            },
+
+            openToolView(tool) {
+                const v = document.getElementById('toolbox-active-view');
+                v.classList.remove('hidden');
+
+                if (tool === 'scanner') {
+                    v.innerHTML = `
+                        <div id="qr-reader" style="width:100%; border-radius:12px; overflow:hidden;"></div>
+                        <p style="font-size:0.75rem; color:var(--text-muted); text-align:center; margin-top:8px;">Kamera auf QR-Code halten.</p>
+                    `;
+                    try {
+                        qrScanner = new Html5Qrcode("qr-reader");
+                        qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, (txt) => {
+                            UI.closeToolbox();
+                            App.handleScannedCode(txt);
+                        }, ()=>{}).catch(()=>alert("Kamera nicht verfügbar."));
+                    } catch(e){}
+                } else if (tool === 'notes') {
+                    v.innerHTML = `
+                        <textarea id="notes-text" class="clean-input" placeholder="Rätsel-Notizen..." style="height:140px; resize:none;" oninput="App.saveNotes(this.value)">${localStorage.getItem('escape_notes_text')||''}</textarea>
+                        <canvas id="sketch-canvas" width="380" height="180" style="border:1px solid var(--border); border-radius:12px; background:#000; width:100%; touch-action:none; margin-top:6px;"></canvas>
+                        <button onclick="App.clearCanvas()" class="btn-sub" style="font-size:0.75rem; padding:6px; margin-top:4px;">Skizze löschen</button>
+                    `;
+                    setTimeout(() => App.initCanvas(), 50);
+                } else if (tool === 'compass') {
+                    v.innerHTML = `
+                        <div style="text-align:center; padding:16px 0;">
+                            <div id="compass-deg" style="font-size:2rem; font-weight:700; color:var(--accent);">--°</div>
+                            <div id="compass-dir" style="font-size:0.85rem; color:var(--text-muted);">Peilung wird ermittelt...</div>
+                            <div style="margin-top:10px; font-size:0.75rem; color:var(--text-muted);">Halte das Smartphone flach in der Hand.</div>
+                        </div>
+                    `;
+                    if (window.DeviceOrientationEvent) {
+                        compassWatchId = (e) => {
+                            const deg = Math.round(e.webkitCompassHeading || Math.abs(e.alpha - 360));
+                            if (!isNaN(deg)) {
+                                document.getElementById('compass-deg').innerText = deg + "°";
+                                const dirs = ["Norden", "Nord-Ost", "Osten", "Süd-Ost", "Süden", "Süd-West", "Westen", "Nord-West"];
+                                document.getElementById('compass-dir').innerText = dirs[Math.round(deg / 45) % 8];
+                            }
+                        };
+                        window.addEventListener('deviceorientation', compassWatchId);
+                    }
+                }
+            },
+
+            openRoleProfile() {
+                const g = App.getActiveGame();
+                if (!g || !App.activeRole) return;
+                document.getElementById('team-roles-content').innerHTML = `
+                    <div style="background:rgba(128,128,128,0.06); padding:12px; border-radius:12px; border-left:3px solid var(--accent); margin-bottom:10px;">
+                        <strong style="color:var(--accent); font-size:1rem;">${App.activeRole.name}</strong><br>
+                        <span style="font-size:0.75rem; color:var(--text-muted);">Deine angemeldete Rolle</span>
+                        <p style="margin-top:6px; font-size:0.85rem;">${App.activeRole.note || 'Du nimmst aktiv an allen Rätseln und Stationen dieser Mission teil.'}</p>
+                    </div>
+                `;
+                document.getElementById('modal-team').classList.add('active');
+            },
+
+            openTeamModal() {
+                const g = App.getActiveGame();
+                if (!g || !g.roles) return;
+                let html = `<p style="color:var(--text-muted); margin-bottom:12px;">In diesem Spiel sind folgende Rollen vorgesehen:</p>`;
+                html += `<div style="margin-bottom:8px;"><strong>${g.roles.player.name}</strong> (Spieler)</div>`;
+                if (g.roles.guardians) {
+                    g.roles.guardians.forEach(gh => {
+                        html += `<div style="margin-bottom:8px;"><strong>${gh.name}</strong><br><span style="color:var(--text-muted); font-size:0.75rem;">${gh.note || ''}</span></div>`;
+                    });
+                }
+                html += `<div><strong>${g.roles.admin.name}</strong> (Spielleitung)</div>`;
+                document.getElementById('team-roles-content').innerHTML = html;
+                document.getElementById('modal-team').classList.add('active');
+            },
+            closeTeamModal() { document.getElementById('modal-team').classList.remove('active'); }
+        };
+
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.view) UI.showView(e.state.view, false);
+            else App.showHome(false);
+        });
+
+        /* 3. ENGINE LOGIK */
+        const App = {
+            library: {},      
+            catalog: [],      
+            previewGameId: null,
+            activeGameId: null,
+            activeRole: null,
+            gameProgress: {},
+            failedAttempts: 0,
+            sandboxGame: null,
+            timerInterval: null,
+            timerSeconds: 0,
+            timerRunning: false,
+
+            init() {
+                UI.initSettings();
+
+                const storedLib = localStorage.getItem('escapelabs_library');
+                if (storedLib) {
+                    try { this.library = JSON.parse(storedLib); } catch(e){}
+                }
+
+                const savedProg = localStorage.getItem('escape_progress');
+                if (savedProg) {
+                    try { this.gameProgress = JSON.parse(savedProg); } catch(e){}
+                }
+
+                this.fetchOnlineCatalog();
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const playParam = urlParams.get('play');
+                if (playParam) {
+                    this.loadAndLaunchDirectGame(playParam);
+                } else {
+                    this.showHome(false);
+                }
+
+                setTimeout(() => this.dismissSplash(), 1800);
+                this.renderHomeGames();
+                history.replaceState({ view: 'view-home' }, '', '#view-home');
+            },
+
+            dismissSplash() {
+                const splash = document.getElementById('splash-screen');
+                if (splash && !splash.classList.contains('fade-out')) splash.classList.add('fade-out');
+            },
+
+            saveLibrary() { localStorage.setItem('escapelabs_library', JSON.stringify(this.library)); },
+            saveProgress() { localStorage.setItem('escape_progress', JSON.stringify(this.gameProgress)); },
+
+            switchHubTab(tab) {
+                const btnLocal = document.getElementById('tab-btn-local');
+                const btnStore = document.getElementById('tab-btn-store');
+                const viewLocal = document.getElementById('hub-view-local');
+                const viewStore = document.getElementById('hub-view-store');
+
+                if (tab === 'local') {
+                    btnLocal.classList.add('active'); btnStore.classList.remove('active');
+                    viewLocal.classList.remove('hidden'); viewStore.classList.add('hidden');
+                    this.renderHomeGames();
+                } else {
+                    btnStore.classList.add('active'); btnLocal.classList.remove('active');
+                    viewStore.classList.remove('hidden'); viewLocal.classList.add('hidden');
+                    this.renderStore();
+                }
+            },
+
+            fetchOnlineCatalog() {
+                fetch('./games/catalog.json')
+                    .then(res => res.json())
+                    .then(data => {
+                        this.catalog = data;
+                        this.renderStore();
+                    })
+                    .catch(() => { this.catalog = []; });
+            },
+
+            renderStore() {
+                const container = document.getElementById('store-container');
+                container.innerHTML = "";
+
+                if (!this.catalog || this.catalog.length === 0) {
+                    container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.85rem;">Aktuell sind keine Spiele im Online-Store verfügbar.</div>`;
+                    return;
+                }
+
+                this.catalog.forEach(item => {
+                    const isInstalled = !!this.library[item.id];
+                    const card = document.createElement('div');
+                    card.className = "game-thumb-card";
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="badge">${item.region || 'Online-Szenario'}</span>
+                            <span style="font-size:0.75rem; color:${isInstalled ? '#22c55e' : 'var(--text-muted)'}; font-weight:700;">
+                                ${isInstalled ? 'INSTALLIERT' : 'VERFÜGBAR'}
+                            </span>
+                        </div>
+                        <h2 style="font-size:1.15rem; margin-top:2px;">${item.title}</h2>
+                        <p style="font-size:0.85rem; color:var(--text-muted);">${item.subtitle || ''}</p>
+                        ${item.previewImage ? `<img class="preview-image" src="${item.previewImage}" alt="${item.title}">` : ''}
+                        <p style="font-size:0.82rem; margin-top:6px; line-height:1.5;">${item.description || ''}</p>
+                        <button onclick="App.installFromStore('${item.id}', '${item.file}')" class="${isInstalled ? 'btn-sub' : 'btn-main'}" style="margin-top:10px; padding:10px; font-size:0.85rem;">
+                            <span class="material-symbols-rounded">${isInstalled ? 'check_circle' : 'download'}</span>
+                            ${isInstalled ? 'Erneut herunterladen' : 'In App laden'}
+                        </button>
+                    `;
+                    container.appendChild(card);
+                });
+            },
+
+            installFromStore(gameId, filePath) {
+                fetch(filePath)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Datei nicht gefunden.");
+                        return res.json();
+                    })
+                    .then(gameData => {
+                        this.library[gameData.id] = gameData;
+                        this.saveLibrary();
+                        alert(`'${gameData.title}' wurde erfolgreich heruntergeladen!`);
+                        this.switchHubTab('local');
+                        this.showHome();
+                    })
+                    .catch(err => alert("Fehler beim Herunterladen: " + err.message));
+            },
+
+            loadAndLaunchDirectGame(gameId) {
+                if (this.library[gameId]) {
+                    this.openGameMenu(gameId);
+                    return;
+                }
+                fetch(`./games/${gameId}.json`)
+                    .then(res => res.json())
+                    .then(gameData => {
+                        this.library[gameData.id] = gameData;
+                        this.saveLibrary();
+                        this.openGameMenu(gameData.id);
+                    })
+                    .catch(() => this.showHome(false));
+            },
+
+            shareCurrentGame() {
+                const shareUrl = window.location.origin + window.location.pathname + '?play=' + this.previewGameId;
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert("📋 Start-Link kopiert! Sende diesen Link deinen Mitspielern:\n\n" + shareUrl);
+                }).catch(() => {
+                    prompt("Link kopieren:", shareUrl);
+                });
+            },
+
+            showHome(pushHistory = true) {
+                UI.resetDefaultTheme();
+                this.renderHomeGames();
+                UI.showView('view-home', pushHistory);
+            },
+
+            renderHomeGames() {
+                const container = document.getElementById('games-container');
+                container.innerHTML = "";
+
+                const keys = Object.keys(this.library);
+
+                if (keys.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align:center; padding: 30px 10px; color:var(--text-muted); font-size:0.85rem;">
+                            <span class="material-symbols-rounded" style="font-size:42px; opacity:0.3; margin-bottom:8px;">folder_off</span><br>
+                            Kein Spiel installiert.<br>
+                            Wechsle oben auf <strong>„Online-Store“</strong>, um Spiele herunterzuladen!
+                        </div>
+                    `;
+                    return;
+                }
+
+                keys.forEach(k => {
+                    const g = this.library[k];
+                    const prog = this.gameProgress[g.id] || { station: 1, unlocked: [] };
+                    const isStarted = prog.station > 1 || prog.unlocked.length > 0;
+
+                    const card = document.createElement('div');
+                    card.className = "game-thumb-card";
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="badge">${g.region || 'Szenario'}</span>
+                            ${isStarted ? '<span style="font-size:0.75rem; color:#22c55e; font-weight:700;">FORTSCHRITT AKTIV</span>' : ''}
+                        </div>
+                        <h2 style="font-size:1.15rem; margin-top:2px;">${g.title}</h2>
+                        <p style="font-size:0.85rem; color:var(--text-muted);">${g.subtitle || ''}</p>
+                        ${g.previewImage ? `<img class="preview-image" style="height:140px;" src="${g.previewImage}" alt="${g.title}">` : ''}
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                            ${isStarted ? `Aktuell bei Station ${prog.station} von ${g.stations.length}` : `${g.stations.length} Stationen ❖ ${g.timeEst || ''}`}
+                        </div>
+                    `;
+                    card.onclick = () => this.openGameMenu(g.id);
+                    container.appendChild(card);
+                });
+            },
+
+            openGameMenu(gameId) {
+                this.previewGameId = gameId;
+                const g = this.getCurrentGameContext();
+                if (!g) return;
+
+                if (g.theme) UI.applyGameTheme(g.theme);
+
+                const prog = this.gameProgress[gameId] || { station: 1, unlocked: [] };
+                const isStarted = prog.station > 1 || prog.unlocked.length > 0;
+
+                document.getElementById('gm-title').innerText = g.title;
+                document.getElementById('gm-sub').innerText = g.subtitle || '';
+                document.getElementById('gm-desc').innerText = g.description || '';
+                document.getElementById('gm-region').innerText = g.region || 'Unbekannt';
+                document.getElementById('gm-time').innerText = g.timeEst || 'ca. 1–2 Std.';
+
+                const img = document.getElementById('gm-img');
+                if (g.previewImage) {
+                    img.src = g.previewImage;
+                    img.classList.remove('hidden');
+                } else {
+                    img.classList.add('hidden');
+                }
+
+                const progBadge = document.getElementById('gm-progress-badge');
+                const btnContinue = document.getElementById('btn-gm-continue');
+                const lblContinue = document.getElementById('lbl-gm-continue');
+
+                if (isStarted) {
+                    progBadge.innerText = `Station ${prog.station} aktiv`;
+                    progBadge.classList.remove('hidden');
+                    lblContinue.innerText = `Spielstand fortsetzen (Station ${prog.station})`;
+                    btnContinue.classList.remove('hidden');
+                } else {
+                    progBadge.classList.add('hidden');
+                    lblContinue.innerText = `Spiel starten`;
+                }
+
+                UI.showView('view-game-menu');
+            },
+
+            startFreshGame() {
+                const prog = this.gameProgress[this.previewGameId];
+                const isStarted = prog && (prog.station > 1 || prog.unlocked.length > 0);
+
+                if (isStarted && !confirm("Möchtest du den bisherigen Spielstand wirklich verwerfen und bei Station I neu starten?")) {
+                    return;
+                }
+
+                this.gameProgress[this.previewGameId] = { station: 1, unlocked: [], hint: null };
+                this.saveProgress();
+                this.openLogin(true);
+            },
+
+            getCurrentGameContext() {
+                return (this.sandboxGame && this.sandboxGame.id === this.previewGameId) ? this.sandboxGame : this.library[this.previewGameId];
+            },
+
+            openLogin(freshStart = false) {
+                const g = this.getCurrentGameContext();
+                if (!g) return;
+
+                document.getElementById('login-game-title').innerText = g.title;
+                const r = g.roles;
+                let html = `<strong>Zugangs-PINs für dieses Spiel:</strong><br>• ${r.player.name}: <strong>${r.player.pin}</strong><br>`;
+                if (r.guardians) r.guardians.forEach(gh => html += `• ${gh.name}: <strong>${gh.pin}</strong><br>`);
+                html += `• ${r.admin.name}: <strong>${r.admin.pin}</strong>`;
+                document.getElementById('login-pin-help').innerHTML = html;
+                document.getElementById('login-feedback').innerText = "";
+                document.getElementById('input-pin').value = "";
+                UI.showView('view-login');
+            },
+
+            login() {
+                const rawInput = document.getElementById('input-pin').value;
+                const cleanInput = String(rawInput).replace(/\D/g, '');
+
+                const g = this.getCurrentGameContext();
+                if (!g || !g.roles) {
+                    document.getElementById('login-feedback').innerText = "Fehler: Kein gültiges Spiel geladen.";
+                    return;
+                }
+
+                const r = g.roles;
+                let matched = null;
+
+                const cleanPlayerPin = String(r.player?.pin || '').replace(/\D/g, '');
+                const cleanAdminPin = String(r.admin?.pin || '').replace(/\D/g, '');
+
+                if (cleanInput === cleanPlayerPin) {
+                    matched = { type: 'player', name: r.player.name, note: 'Du bist die Hauptfigur der Geschichte.' };
+                } else if (cleanInput === cleanAdminPin) {
+                    matched = { type: 'admin', name: r.admin.name, note: 'Du hast die volle Kontrolle über Stationen und Notfall-Tipps.' };
+                } else if (r.guardians && Array.isArray(r.guardians)) {
+                    const found = r.guardians.find(x => String(x.pin || '').replace(/\D/g, '') === cleanInput);
+                    if (found) matched = { type: 'guardian', name: found.name, note: found.note };
+                }
+
+                if (matched) {
+                    this.activeGameId = this.previewGameId;
+                    this.activeRole = matched;
+                    this.failedAttempts = 0;
+                    document.getElementById('input-pin').value = "";
+
+                    if (!this.gameProgress[this.activeGameId]) {
+                        this.gameProgress[this.activeGameId] = { station: 1, unlocked: [], hint: null };
+                        this.saveProgress();
+                    }
+
+                    this.buildDynamicBottomNav(g);
+                    this.startTimer();
+                    this.updateMenu();
+                    this.renderStation();
+                    this.renderDossier();
+                    this.renderLiveHint();
+
+                    if (matched.type === 'admin') UI.showView('view-admin');
+                    else UI.showView('view-station');
+                } else {
+                    document.getElementById('login-feedback').innerText = "Falscher PIN für dieses Szenario!";
+                }
+            },
+
+            buildDynamicBottomNav(game) {
+                const nav = document.getElementById('game-bottom-nav');
+                nav.innerHTML = "";
+
+                const defaultTabs = [
+                    { id: 'view-station', label: 'Station', icon: 'explore' },
+                    { id: 'view-map', label: 'Karte', icon: 'map' },
+                    { id: 'view-dossier', label: 'Akte', icon: 'folder_open' }
+                ];
+
+                const tabs = (game.navigation && Array.isArray(game.navigation)) ? game.navigation : defaultTabs;
+
+                tabs.forEach(t => {
+                    const btn = document.createElement('button');
+                    btn.className = "nav-btn";
+                    btn.setAttribute('data-target', t.id);
+                    btn.innerHTML = `<span class="material-symbols-rounded">${t.icon || 'star'}</span><span>${t.label}</span>`;
+                    btn.onclick = () => UI.showView(t.id);
+                    nav.appendChild(btn);
+                });
+
+                if (this.activeRole && (this.activeRole.type === 'guardian' || this.activeRole.type === 'admin')) {
+                    const hBtn = document.createElement('button');
+                    hBtn.className = "nav-btn";
+                    hBtn.setAttribute('data-target', 'view-hueter');
+                    hBtn.innerHTML = `<span class="material-symbols-rounded">shield</span><span>Hüter</span>`;
+                    hBtn.onclick = () => UI.showView('view-hueter');
+                    nav.appendChild(hBtn);
+                }
+
+                if (this.activeRole && this.activeRole.type === 'admin') {
+                    const aBtn = document.createElement('button');
+                    aBtn.className = "nav-btn";
+                    aBtn.setAttribute('data-target', 'view-admin');
+                    aBtn.innerHTML = `<span class="material-symbols-rounded">tune</span><span>Admin</span>`;
+                    aBtn.onclick = () => UI.showView('view-admin');
+                    nav.appendChild(aBtn);
+                }
+            },
+
+            deleteCurrentGame() {
+                if (!this.previewGameId) return;
+                const g = this.library[this.previewGameId];
+                if (confirm(`Möchtest du '${g.title}' wirklich aus deiner Bibliothek löschen?`)) {
+                    delete this.library[this.previewGameId];
+                    delete this.gameProgress[this.previewGameId];
+                    this.saveLibrary();
+                    this.saveProgress();
+                    this.renderHomeGames();
+                    this.showHome();
+                }
+            },
+
+            renderStation() {
+                const g = this.getActiveGame();
+                if (!g) return;
+                const prog = this.gameProgress[this.activeGameId];
+                const st = g.stations.find(s => s.id === prog.station);
+
+                if (!st) {
+                    document.getElementById('st-title').innerText = "Fall Gelöst!";
+                    document.getElementById('st-story').innerText = "Glückwunsch! Ihr habt alle Prüfungen dieser Fallakte gemeistert.";
+                    document.getElementById('quiz-inputs').innerHTML = "";
+                    document.getElementById('st-image').classList.add('hidden');
+                    document.getElementById('auto-hint-box').classList.add('hidden');
+                    return;
+                }
+
+                document.getElementById('st-badge').innerText = st.roman || `Station ${st.id}`;
+                document.getElementById('st-location').innerText = st.location || "";
+                document.getElementById('st-title').innerText = st.title;
+                document.getElementById('st-story').innerText = st.story;
+
+                const img = document.getElementById('st-image');
+                if (st.image) {
+                    img.src = st.image;
+                    img.classList.remove('hidden');
+                } else {
+                    img.classList.add('hidden');
+                }
+
+                document.getElementById('st-question').innerText = st.riddle.question;
+                const wrap = document.getElementById('quiz-inputs');
+                wrap.innerHTML = "";
+
+                if (st.riddle.type === 'choice' && st.riddle.options) {
+                    st.riddle.options.forEach(opt => {
+                        const b = document.createElement('button');
+                        b.className = "btn-sub";
+                        b.innerText = opt;
+                        b.onclick = () => this.checkAnswer(opt);
+                        wrap.appendChild(b);
+                    });
+                } else {
+                    const inp = document.createElement('input');
+                    inp.type = "text";
+                    inp.id = "user-answer-inp";
+                    inp.className = "clean-input";
+                    inp.placeholder = "Deine Lösung...";
+
+                    const btn = document.createElement('button');
+                    btn.className = "btn-main";
+                    btn.innerText = "Antwort prüfen";
+                    btn.onclick = () => this.checkAnswer(document.getElementById('user-answer-inp').value);
+
+                    wrap.appendChild(inp);
+                    wrap.appendChild(btn);
+                }
+
+                document.getElementById('game-feedback').innerText = "";
+                document.getElementById('hueter-note-text').innerText = st.guardianNote || "Keine spezielle Anweisung.";
+                document.getElementById('auto-hint-box').classList.add('hidden');
+                document.getElementById('auto-hint-text').classList.add('hidden');
+            },
+
+            getActiveGame() {
+                return (this.sandboxGame && this.sandboxGame.id === this.activeGameId) ? this.sandboxGame : this.library[this.activeGameId];
+            },
+
+            checkAnswer(val) {
+                const g = this.getActiveGame();
+                const prog = this.gameProgress[this.activeGameId];
+                const st = g.stations.find(s => s.id === prog.station);
+                const fb = document.getElementById('game-feedback');
+
+                const cleanUser = String(val || "").trim().toUpperCase();
+                const cleanCorrect = String(st.riddle.answer || "").trim().toUpperCase();
+
+                if (cleanUser === cleanCorrect) {
+                    UI.vibrate([80, 50, 80]);
+                    fb.style.color = "#22c55e";
+                    fb.innerText = "Richtig gelöst! Akte aktualisiert.";
+                    this.failedAttempts = 0;
+
+                    if (!prog.unlocked.includes(st.id)) prog.unlocked.push(st.id);
+
+                    setTimeout(() => {
+                        if (prog.station < g.stations.length) {
+                            prog.station++;
+                            prog.hint = null;
+                            this.saveProgress();
+                            this.renderStation();
+                            this.renderDossier();
+                            this.renderLiveHint();
+                        } else {
+                            alert("🎉 Glückwunsch! Alle Rätsel dieser Fallakte sind gelöst!");
+                        }
+                    }, 800);
+                } else {
+                    UI.vibrate(200);
+                    this.failedAttempts++;
+                    fb.style.color = "var(--accent)";
+                    fb.innerText = "Leider falsch! Versuche es noch einmal.";
+                    if (this.failedAttempts >= 3 && st.riddle.hint) {
+                        document.getElementById('auto-hint-box').classList.remove('hidden');
+                    }
+                }
+            },
+
+            revealAutoHint() {
+                const g = this.getActiveGame();
+                const prog = this.gameProgress[this.activeGameId];
+                const st = g.stations.find(s => s.id === prog.station);
+                const txt = document.getElementById('auto-hint-text');
+                txt.innerText = "💡 Tipp: " + st.riddle.hint;
+                txt.classList.remove('hidden');
+            },
+
+            initOrUpdateMap() {
+                const g = this.getActiveGame();
+                if (!g) return;
+
+                const prog = this.gameProgress[this.activeGameId];
+                const currentStation = g.stations.find(s => s.id === prog.station) || g.stations[0];
+                const centerCoords = currentStation.coords || [51.75, 11.05];
+
+                if (!leafletMap) {
+                    leafletMap = L.map('game-map').setView(centerCoords, 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 18,
+                        attribution: '© OpenStreetMap'
+                    }).addTo(leafletMap);
+                } else {
+                    leafletMap.invalidateSize();
+                    leafletMap.setView(centerCoords, 13);
+                }
+
+                mapMarkers.forEach(m => leafletMap.removeLayer(m));
+                mapMarkers = [];
+
+                g.stations.forEach(s => {
+                    if (s.coords) {
+                        const isCurrent = (s.id === prog.station);
+                        const marker = L.marker(s.coords).addTo(leafletMap);
+                        marker.bindPopup(`<b>${s.roman}: ${s.title}</b><br>${s.location}`);
+                        if (isCurrent) marker.openPopup();
+                        mapMarkers.push(marker);
+                    }
+                });
+            },
+
+            handleScannedCode(text) {
+                const urlMatch = text.match(/[?&]station=(\d+)/);
+                if (urlMatch && this.activeGameId) {
+                    const stNum = parseInt(urlMatch[1], 10);
+                    this.gameProgress[this.activeGameId].station = stNum;
+                    this.saveProgress();
+                    this.renderStation();
+                    this.renderDossier();
+                    UI.showView('view-station');
+                    alert(`Station ${stNum} über QR-Code aktiviert!`);
+                } else {
+                    alert(`Gescannter Code: ${text}`);
+                }
+            },
+
+            startTimer() {
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                this.timerRunning = true;
+                this.timerInterval = setInterval(() => {
+                    if (this.timerRunning) {
+                        this.timerSeconds++;
+                        this.updateTimerDisplay();
+                    }
+                }, 1000);
+            },
+            toggleTimer() {
+                this.timerRunning = !this.timerRunning;
+                document.getElementById('timer-btn-icon').innerText = this.timerRunning ? 'pause' : 'play_arrow';
+                document.getElementById('timer-btn-label').innerText = this.timerRunning ? 'Pausieren' : 'Weiter';
+            },
+            updateTimerDisplay() {
+                const h = String(Math.floor(this.timerSeconds / 3600)).padStart(2, '0');
+                const m = String(Math.floor((this.timerSeconds % 3600) / 60)).padStart(2, '0');
+                const s = String(this.timerSeconds % 60).padStart(2, '0');
+                const el = document.getElementById('timer-display');
+                if (el) el.innerText = `${h}:${m}:${s}`;
+            },
+
+            async toggleTorch() {
+                try {
+                    if (!videoTrack) {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                        videoTrack = stream.getVideoTracks()[0];
+                        await videoTrack.applyConstraints({ advanced: [{ torch: true }] });
+                        document.getElementById('btn-tool-torch').style.borderColor = 'var(--accent)';
+                        document.getElementById('lbl-tool-torch').innerText = 'Taschenlampe (Ein)';
+                    } else {
+                        videoTrack.stop();
+                        videoTrack = null;
+                        document.getElementById('btn-tool-torch').style.borderColor = 'var(--border)';
+                        document.getElementById('lbl-tool-torch').innerText = 'Taschenlampe (Aus)';
+                    }
+                } catch(err) {
+                    alert("Kamera-Blitzlicht wird von diesem Gerät/Browser nicht unterstützt.");
+                }
+            },
+
+            initCanvas() {
+                const canvas = document.getElementById('sketch-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                let painting = false;
+
+                const savedDrawing = localStorage.getItem('escape_canvas_img');
+                if (savedDrawing) {
+                    const img = new Image();
+                    img.onload = () => ctx.drawImage(img, 0, 0);
+                    img.src = savedDrawing;
+                }
+
+                function getPos(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    return { x: clientX - rect.left, y: clientY - rect.top };
+                }
+
+                function startDraw(e) {
+                    painting = true; ctx.beginPath();
+                    const pos = getPos(e); ctx.moveTo(pos.x, pos.y);
+                }
+                function draw(e) {
+                    if (!painting) return; e.preventDefault();
+                    const pos = getPos(e); ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineTo(pos.x, pos.y); ctx.stroke();
+                }
+                function stopDraw() {
+                    if (painting) { painting = false; localStorage.setItem('escape_canvas_img', canvas.toDataURL()); }
+                }
+
+                canvas.onmousedown = startDraw; canvas.onmousemove = draw; canvas.onmouseup = stopDraw;
+                canvas.ontouchstart = startDraw; canvas.ontouchmove = draw; canvas.ontouchend = stopDraw;
+            },
+
+            clearCanvas() {
+                const canvas = document.getElementById('sketch-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                localStorage.removeItem('escape_canvas_img');
+            },
+
+            saveNotes(text) { localStorage.setItem('escape_notes_text', text); },
+
+            renderDossier() {
+                const list = document.getElementById('dossier-items');
+                list.innerHTML = "";
+                const g = this.getActiveGame();
+                if (!g) return;
+                const prog = this.gameProgress[this.activeGameId];
+
+                if (!prog || prog.unlocked.length === 0) {
+                    list.innerHTML = "<p style='color:var(--text-muted); font-size:0.85rem;'>Noch keine Fundstücke geborgen.</p>";
+                    return;
+                }
+
+                prog.unlocked.forEach(id => {
+                    const st = g.stations.find(s => s.id === id);
+                    if (st && st.dossier) {
+                        const div = document.createElement('div');
+                        div.style = "background:rgba(128,128,128,0.06); border-left:3px solid var(--accent); padding:12px; margin-bottom:10px; border-radius:8px;";
+                        div.innerHTML = `<strong>${st.dossier.title}</strong><br><small style="color:var(--text-muted);">${st.location}</small><p style="margin-top:4px; font-size:0.9rem;">${st.dossier.text}</p>`;
+                        list.appendChild(div);
+                    }
+                });
+            },
+
+            updateMenu() {
+                const inGame = !!this.activeGameId && !!this.activeRole;
+                document.getElementById('menu-hub-content').classList.toggle('hidden', inGame);
+                document.getElementById('menu-game-content').classList.toggle('hidden', !inGame);
+
+                if (inGame) {
+                    document.getElementById('menu-user-status').innerHTML = `Eingeloggt: <strong>${this.activeRole.name}</strong>`;
+                } else {
+                    document.getElementById('menu-user-status').innerText = "Kein Spiel geöffnet";
+                }
+            },
+
+            leaveGame() {
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                if (videoTrack) { videoTrack.stop(); videoTrack = null; }
+                UI.resetDefaultTheme();
+                this.saveProgress();
+                this.activeGameId = null;
+                this.activeRole = null;
+                this.sandboxGame = null;
+                this.updateMenu();
+                this.showHome();
+                UI.toggle('menu-panel');
+            },
+
+            sendHint() {
+                const v = document.getElementById('hueter-hint-input').value.trim();
+                if (!v) return;
+                this.gameProgress[this.activeGameId].hint = v;
+                this.saveProgress();
+                this.renderLiveHint();
+                alert("Tipp übertragen!");
+                document.getElementById('hueter-hint-input').value = "";
+            },
+
+            sendAdminHint() {
+                const v = document.getElementById('admin-hint-input').value.trim();
+                if (!v) return;
+                this.gameProgress[this.activeGameId].hint = v;
+                this.saveProgress();
+                this.renderLiveHint();
+                alert("Spielleiter-Tipp gefunkt!");
+                document.getElementById('admin-hint-input').value = "";
+            },
+
+            adminUnlockAll() {
+                const g = this.getActiveGame();
+                const prog = this.gameProgress[this.activeGameId];
+                g.stations.forEach(s => {
+                    if (!prog.unlocked.includes(s.id)) prog.unlocked.push(s.id);
+                });
+                this.saveProgress();
+                this.renderDossier();
+                alert("Alle Aktenstücke wurden freigeschaltet!");
+            },
+
+            clearHint() {
+                this.gameProgress[this.activeGameId].hint = null;
+                this.saveProgress();
+                this.renderLiveHint();
+            },
+
+            renderLiveHint() {
+                const b = document.getElementById('live-hint-bar');
+                const prog = this.gameProgress[this.activeGameId];
+                if (prog && prog.hint) {
+                    b.classList.remove('hidden');
+                    document.getElementById('live-hint-text').innerText = prog.hint;
+                } else {
+                    b.classList.add('hidden');
+                }
+            },
+
+            renderAdminJumps() {
+                if (!this.activeGameId) return;
+                const g = this.getActiveGame();
+                const box = document.getElementById('admin-jump-list');
+                box.innerHTML = "";
+
+                document.getElementById('admin-game-title').innerText = g.title;
+                document.getElementById('admin-game-sub').innerText = "Admin-Zentrale für: " + g.title;
+
+                g.stations.forEach(st => {
+                    const btn = document.createElement('button');
+                    btn.className = "btn-sub";
+                    btn.innerText = st.roman || `St. ${st.id}`;
+                    btn.onclick = () => {
+                        this.gameProgress[this.activeGameId].station = st.id;
+                        if (!this.gameProgress[this.activeGameId].unlocked.includes(st.id)) {
+                            this.gameProgress[this.activeGameId].unlocked.push(st.id);
+                        }
+                        this.saveProgress();
+                        this.renderStation();
+                        this.renderDossier();
+                        UI.showView('view-station');
+                    };
+                    box.appendChild(btn);
+                });
+            },
+
+            resetCurrentMission() {
+                const g = this.getActiveGame();
+                if (confirm(`Möchtest du '${g.title}' komplett auf Station I zurücksetzen?`)) {
+                    this.gameProgress[this.activeGameId] = { station: 1, unlocked: [], hint: null };
+                    this.saveProgress();
+                    this.renderStation();
+                    this.renderDossier();
+                    this.renderLiveHint();
+                    alert("Mission wurde zurückgesetzt.");
+                    UI.showView('view-station');
+                }
+            },
+
+            promptDevAccess() {
+                const entered = prompt("Autorisierung erforderlich. Master-Schlüssel eingeben:");
+                if (!entered) return;
+                if (String(entered).trim() === "15011989") {
+                    UI.toggle('settings-panel');
+                    UI.showView('view-dev-studio');
+                } else {
+                    alert("Zugriff verweigert: Ungültiger Sicherheitsschlüssel.");
+                }
+            },
+
+            devValidateAndSandbox() {
+                const fi = document.getElementById('dev-file-input');
+                const report = document.getElementById('dev-report-box');
+
+                if (!fi.files || fi.files.length === 0) {
+                    alert("Bitte wähle eine .json-Datei aus!");
+                    return;
+                }
+
+                const r = new FileReader();
+                r.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        let errors = [];
+
+                        if (!json.id) errors.push("Fehlt: 'id'");
+                        if (!json.title) errors.push("Fehlt: 'title'");
+                        if (!json.roles || !json.roles.player || !json.roles.admin) {
+                            errors.push("Fehlt: 'roles' mit mindestens 'player' und 'admin'");
+                        }
+                        if (!json.stations || !Array.isArray(json.stations) || json.stations.length === 0) {
+                            errors.push("Fehlt: 'stations' Array");
+                        }
+
+                        report.classList.remove('hidden');
+
+                        if (errors.length > 0) {
+                            report.innerHTML = `<span style="color:#ef4444; font-weight:bold;">❌ Fehler in Datei:</span><br>` + errors.join('<br>');
+                        } else {
+                            this.sandboxGame = json;
+                            report.innerHTML = `<span style="color:#22c55e; font-weight:bold;">✅ Perfekt validiert!</span><br>
+                            Spiel: <strong>${json.title}</strong> (${json.stations.length} Stationen).<br>
+                            Starte Testlauf in der Sandbox...`;
+
+                            setTimeout(() => {
+                                this.openGameMenu(json.id);
+                            }, 800);
+                        }
+
+                    } catch(err) {
+                        report.classList.remove('hidden');
+                        report.innerHTML = `<span style="color:#ef4444; font-weight:bold;">Syntax-Fehler in JSON:</span><br>${err.message}`;
+                    }
+                };
+                r.readAsText(fi.files[0]);
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
+</body>
+</html>
