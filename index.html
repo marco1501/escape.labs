@@ -418,7 +418,7 @@
 
     <!-- FOOTER -->
     <footer id="app-footer">
-        <div>Ein Produkt von <span style="font-weight:700;">forester.labs</span> ❖ v0.0.2</div>
+        <div>Ein Produkt von <span style="font-weight:700;">forester.labs</span> ❖ v0.1.0</div>
         <div style="opacity: 0.6; margin-top: 2px;">made by <a href="http://www.marcofoerster.com" target="_blank" class="footer-link">Marco Förster</a></div>
     </footer>
 
@@ -479,7 +479,7 @@
             <h2>EINSTELLUNGEN</h2>
             <button class="icon-btn" onclick="UI.toggle('settings-panel')"><span class="material-symbols-rounded">close</span></button>
         </div>
-        <div style="margin-bottom: 22px;">
+        <div style="margin-bottom: 28px;">
             <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Erscheinungsbild</label>
             <div style="display: flex; gap: 14px;">
                 <button id="theme-btn-dark" class="round-icon-btn active" onclick="UI.setTheme('dark')" title="Dunkler Modus">
@@ -490,14 +490,14 @@
                 </button>
             </div>
         </div>
-        <div style="margin-bottom: 22px;">
+        <div style="margin-bottom: 28px;">
             <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Akzentfarbe</label>
             <div style="display:flex; align-items:center; gap:12px;">
                 <input type="color" id="accentColorPicker" value="#e50914" oninput="UI.setAccent(this.value)">
                 <span style="font-size:0.85rem; color:var(--text-muted);">Farbe anpassen</span>
             </div>
         </div>
-        <div style="margin-bottom: 22px;">
+        <div style="margin-bottom: 28px;">
             <label id="lbl-font-size" style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Schriftgröße (16px)</label>
             <input type="range" id="fontSizeRange" min="13" max="22" value="16" oninput="UI.setFontSize(this.value)">
     <div style="margin-bottom: 28px;">
