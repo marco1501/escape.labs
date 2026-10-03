@@ -75,7 +75,21 @@ const UI = {
         this.initSettings();
         document.body.style.fontFamily = "'All Round Gothic', 'Allround Gothic', 'Comfortaa', 'Poppins', sans-serif";
     },
+resetSettings() {
+        localStorage.removeItem('escape_theme');
+        localStorage.removeItem('escape_accent');
+        localStorage.removeItem('escape_font_size');
+        localStorage.removeItem('escape_haptics');
 
+        // Standardwerte wiederherstellen
+        this.setTheme('dark');
+        this.setAccent('#e50914');
+        document.getElementById('accentColorPicker').value = '#e50914';
+        this.setFontSize(16);
+        document.getElementById('fontSizeRange').value = 16;
+        document.getElementById('check-haptics').checked = true;
+        this.toggleHaptics(true);
+    },
     setTheme(mode) {
         document.body.className = mode + '-mode';
         document.getElementById('theme-btn-dark').classList.toggle('active', mode === 'dark');
