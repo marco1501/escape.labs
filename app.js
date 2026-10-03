@@ -232,6 +232,7 @@ resetSettings() {
             `;
             App.startCompass();
         }
+       },
       
             if (window.DeviceOrientationEvent) {
                 compassWatchId = (e) => {
