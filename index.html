@@ -29,6 +29,10 @@
 </head>
 <body class="dark-mode">
 
+    <!-- DUMMY INPUT GEGEN CHROME PASSWORT-POPUPS -->
+<input type="text" name="prevent_autofill" id="prevent_autofill" value="" style="display:none;" tabindex="-1" autocomplete="off" />
+<input type="password" name="password_fake" id="password_fake" value="" style="display:none;" tabindex="-1" autocomplete="new-password" />
+
     <!-- KONFETTI LEINWAND -->
     <canvas id="confetti-canvas"></canvas>
 
@@ -81,24 +85,28 @@
                 </h3>
                 <button class="icon-btn" onclick="UI.closeToolbox()"><span class="material-symbols-rounded">close</span></button>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
-                <button onclick="UI.openToolView('scanner')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
-                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">qr_code_scanner</span>
-                    <span>QR-Scanner</span>
-                </button>
-                <button onclick="UI.openToolView('notes')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
-                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">edit_note</span>
-                    <span>Notizen & Skizzen</span>
-                </button>
-                <button onclick="App.toggleTorch()" id="btn-tool-torch" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
-                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">flashlight_on</span>
-                    <span id="lbl-tool-torch">Taschenlampe</span>
-                </button>
-                <button onclick="UI.openToolView('compass')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
-                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">explore</span>
-                    <span>Peilkompass</span>
-                </button>
-            </div>
+           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+    <button onclick="UI.openToolView('scanner')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+        <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">qr_code_scanner</span>
+        <span>QR-Scanner</span>
+    </button>
+    <button onclick="UI.openToolView('notes')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+        <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">edit_note</span>
+        <span>Notizen</span>
+    </button>
+    <button onclick="UI.openToolView('sketch')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+        <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">draw</span>
+        <span>Skizze</span>
+    </button>
+    <button onclick="App.toggleTorch()" id="btn-tool-torch" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+        <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">flashlight_on</span>
+        <span id="lbl-tool-torch">Taschenlampe</span>
+    </button>
+    <button onclick="UI.openToolView('compass')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0; grid-column: span 2;">
+        <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">explore</span>
+        <span>Peilkompass</span>
+    </button>
+</div>
             <div id="toolbox-active-view" class="hidden" style="border-top:1px solid var(--border); padding-top:12px;"></div>
         </div>
     </div>
