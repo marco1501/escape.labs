@@ -177,6 +177,7 @@
 
     <!-- MODAL: ÜBER FORESTER.LABS & DISCLAIMER -->
    <!-- MODAL: ÜBER FORESTER.LABS & DISCLAIMER -->
+  <!-- MODAL: ÜBER FORESTER.LABS & DISCLAIMER -->
     <div id="modal-about" class="modal-overlay">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -191,12 +192,19 @@
                     <strong>escape.labs</strong> ist eine experimentelle Plattform für Schnitzeljagden, Krimis und Escape-Games.
                 </p>
                 <p>
-                    <strong>forester.labs:</strong> Private Sammlung kleiner Web-Apps und Widgets von Marco Förster.
+                    <strong>forester.labs</strong> ist eine private Sammlung kleiner Apps und Widgets von Marco Förster.
                 </p>
                 <p style="color:var(--text-muted); font-size:0.82rem;">
                     <strong>Disclaimer:</strong> Ich bin kein hauptberuflicher Entwickler. Alles entsteht privat, experimentell und ohne kommerziellen Anspruch. Es gibt keinerlei Garantie auf Fehlerfreiheit oder permanente Stabilität.
                 </p>
             </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <a href="http://www.marcofoerster.com" target="_blank" class="btn-main" style="text-decoration:none;">Kontakt</a>
+                <button onclick="UI.closeAbout()" class="btn-sub">Schließen</button>
+            </div>
+        </div>
+    </div>
 
             <div style="display:flex; flex-direction:column; gap:8px;">
                 <a href="http://www.marcofoerster.com" target="_blank" class="btn-sub" style="text-decoration:none; text-align:center;">Website & Kontakt (Marco Förster)</a>
@@ -501,14 +509,19 @@
         <div style="margin-bottom: 22px;">
             <label id="lbl-font-size" style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Schriftgröße (16px)</label>
             <input type="range" id="fontSizeRange" min="13" max="22" value="16" oninput="UI.setFontSize(this.value)">
-        </div>
-        <div style="margin-bottom: 22px;">
+    <div style="margin-bottom: 22px;">
             <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Haptik & Feedback</label>
             <label style="display:flex; align-items:center; gap:10px; font-size:0.85rem; cursor:pointer;">
                 <input type="checkbox" id="check-haptics" onchange="UI.toggleHaptics(this.checked)" checked style="accent-color:var(--accent); width:18px; height:18px;">
                 <span>Vibration bei Rätseln</span>
             </label>
         </div>
+
+        <!-- NEUER BUTTON: -->
+        <button onclick="UI.resetSettings()" class="btn-sub" style="margin-top:10px;">
+            <span class="material-symbols-rounded">restart_alt</span> Einstellungen zurücksetzen
+        </button>
+
         <div style="margin-top: 50px; padding-top: 15px; border-top: 1px solid var(--border); text-align: center;">
             <button onclick="App.promptDevAccess()" style="background:none; border:none; color:var(--text-muted); opacity:0.35; font-size:0.75rem; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:4px;">
                 <span class="material-symbols-rounded" style="font-size:15px;">admin_panel_settings</span> Admin-Bereich
