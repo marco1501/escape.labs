@@ -199,7 +199,7 @@ resetSettings() {
         const v = document.getElementById('toolbox-active-view');
         v.classList.remove('hidden');
 
-        if (tool === 'scanner') {
+      if (tool === 'scanner') {
             v.innerHTML = `
                 <div id="qr-reader" style="width:100%; border-radius:12px; overflow:hidden;"></div>
                 <p style="font-size:0.75rem; color:var(--text-muted); text-align:center; margin-top:8px;">Kamera auf QR-Code halten.</p>
@@ -213,19 +213,26 @@ resetSettings() {
             } catch(e){}
         } else if (tool === 'notes') {
             v.innerHTML = `
-                <textarea id="notes-text" class="clean-input" placeholder="Rätsel-Notizen..." style="height:120px; resize:none;" oninput="App.saveNotes(this.value)">${localStorage.getItem('escape_notes_text')||''}</textarea>
-                <canvas id="sketch-canvas" width="380" height="160" style="border:1px solid var(--border); border-radius:12px; background:#000; width:100%; touch-action:none; margin-top:6px;"></canvas>
-                <button onclick="App.clearCanvas()" class="btn-sub" style="font-size:0.75rem; padding:6px; margin-top:4px;">Skizze löschen</button>
+                <textarea id="notes-text" class="clean-input" placeholder="Rätsel-Notizen..." style="height:180px; resize:none; font-family:inherit;" autocomplete="off" autocorrect="off" spellcheck="false" oninput="App.saveNotes(this.value)">${localStorage.getItem('escape_notes_text')||''}</textarea>
+            `;
+        } else if (tool === 'sketch') {
+            v.innerHTML = `
+                <canvas id="sketch-canvas" width="380" height="220" style="border:1px solid var(--border); border-radius:12px; background:#000; width:100%; touch-action:none; margin-top:6px;"></canvas>
+                <button onclick="App.clearCanvas()" class="btn-sub" style="font-size:0.75rem; padding:8px; margin-top:6px;">Skizze löschen</button>
             `;
             setTimeout(() => App.initCanvas(), 50);
         } else if (tool === 'compass') {
             v.innerHTML = `
                 <div style="text-align:center; padding:14px 0;">
-                    <div id="compass-deg" style="font-size:2.2rem; font-weight:700; color:var(--accent);">--°</div>
-                    <div id="compass-dir" style="font-size:0.85rem; color:var(--text-muted);">Peilung wird ermittelt...</div>
-                    <div style="margin-top:8px; font-size:0.75rem; color:var(--text-muted);">Smartphone flach halten.</div>
+                    <div id="compass-deg" style="font-size:2.5rem; font-weight:700; color:var(--accent); font-family:monospace;">--°</div>
+                    <div id="compass-dir" style="font-size:0.9rem; color:var(--text-muted); font-weight:600; margin-top:4px;">Peilung wird ermittelt...</div>
+                    <button id="btn-compass-perm" onclick="App.requestCompassPermission()" class="btn-sub" style="margin-top:12px; display:none;">Kompass-Zugriff erlauben</button>
+                    <div style="margin-top:10px; font-size:0.75rem; color:var(--text-muted);">Smartphone flach halten & im 8er-Muster schwenken.</div>
                 </div>
             `;
+            App.startCompass();
+        }
+      
             if (window.DeviceOrientationEvent) {
                 compassWatchId = (e) => {
                     let heading = e.webkitCompassHeading;
@@ -597,13 +604,13 @@ const App = {
         } else if (authType === "password") {
             promptText.innerText = "Gib das geheime Losungswort ein:";
             container.innerHTML = `
-                <input type="text" id="input-auth-field" class="clean-input" placeholder="Losungswort..." style="text-align:center;">
+                <input type="text" id="input-auth-field" class="clean-input" placeholder="Losungswort..." style="text-align:center;" autocomplete="off" autocorrect="off" spellcheck="false">
                 <button onclick="App.submitLoginText()" class="btn-main"><span class="material-symbols-rounded">key</span> Bestätigen</button>
             `;
         } else {
             promptText.innerText = "Gib deinen Rollen-Code ein:";
             container.innerHTML = `
-                <input type="password" id="input-auth-field" class="clean-input" placeholder="••••" inputmode="numeric" style="text-align:center; font-size:1.4rem; letter-spacing:4px;">
+               <input type="text" id="input-auth-field" class="clean-input" placeholder="••••" inputmode="numeric" style="text-align:center; font-size:1.4rem; letter-spacing:4px;" autocomplete="off" autocorrect="off">
                 <button onclick="App.submitLoginPin()" class="btn-main"><span class="material-symbols-rounded">lock_open</span> Einloggen</button>
             `;
 
@@ -1179,7 +1186,71 @@ const App = {
             }
         });
     },
+startCompass() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const btn = document.getElementById('btn-compass-perm');
+            if (btn) btn.style.display = 'inline-block';
+        }
 
+        let lastHeading = null;
+        const handleOrient = (e) => {
+            let heading = null;
+
+            // iOS Safari
+            if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+                heading = e.webkitCompassHeading;
+            } 
+            // Android Chrome Absolute
+            else if (e.alpha !== null && e.alpha !== undefined) {
+                heading = (360 - e.alpha) % 360;
+            }
+
+            if (heading !== null && !isNaN(heading)) {
+                // Glättungs-Filter (Tiefpass gegen Zappeln)
+                if (lastHeading === null) {
+                    lastHeading = heading;
+                } else {
+                    let diff = heading - lastHeading;
+                    if (diff > 180) diff -= 360;
+                    if (diff < -180) diff += 360;
+                    lastHeading = (lastHeading + diff * 0.2 + 360) % 360;
+                }
+
+                const deg = Math.round(lastHeading);
+                const degEl = document.getElementById('compass-deg');
+                const dirEl = document.getElementById('compass-dir');
+
+                if (degEl && dirEl) {
+                    degEl.innerText = deg + "°";
+                    const dirs = ["Norden", "Nord-Ost", "Osten", "Süd-Ost", "Süden", "Süd-West", "Westen", "Nord-West"];
+                    dirEl.innerText = dirs[Math.round(deg / 45) % 8];
+                }
+            }
+        };
+
+        if ('ondeviceorientationabsolute' in window) {
+            compassWatchId = handleOrient;
+            window.addEventListener('deviceorientationabsolute', compassWatchId, true);
+        } else if (window.DeviceOrientationEvent) {
+            compassWatchId = handleOrient;
+            window.addEventListener('deviceorientation', compassWatchId, true);
+        }
+    },
+
+    requestCompassPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission().then(state => {
+                if (state === 'granted') {
+                    const btn = document.getElementById('btn-compass-perm');
+                    if (btn) btn.style.display = 'none';
+                    this.startCompass();
+                } else {
+                    alert("Zugriff auf Kompass-Sensor verweigert.");
+                }
+            }).catch(console.error);
+        }
+    },
+   
     startGpsTracking() {
         if (!navigator.geolocation) return;
         gpsWatchId = navigator.geolocation.watchPosition((pos) => {
