@@ -186,7 +186,7 @@ resetSettings() {
         document.getElementById('modal-toolbox').classList.add('active');
         document.getElementById('toolbox-active-view').classList.add('hidden');
     },
-   closeToolbox() {
+  closeToolbox() {
     if (qrScanner) { 
         qrScanner.stop().then(() => qrScanner.clear()).catch(() => {}); 
         qrScanner = null; 
@@ -196,10 +196,13 @@ resetSettings() {
         window.removeEventListener('deviceorientation', compassWatchId, true);
         compassWatchId = null;
     }
-    const modal = document.getElementById('modal-toolbox');
-    if (modal) modal.classList.add('hidden');
-},
 
+    const modal = document.getElementById('modal-toolbox');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.classList.add('hidden');
+    }
+},
    openToolView(tool) {
         const v = document.getElementById('toolbox-active-view');
         v.classList.remove('hidden');
