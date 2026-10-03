@@ -176,25 +176,32 @@
     </div>
 
     <!-- MODAL: ÜBER FORESTER.LABS & DISCLAIMER -->
+   <!-- MODAL: ÜBER FORESTER.LABS & DISCLAIMER -->
     <div id="modal-about" class="modal-overlay">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:8px;">
                     <span class="material-symbols-rounded" style="color:var(--accent);">science</span> Über dieses Projekt
                 </h3>
                 <button class="icon-btn" onclick="UI.closeAbout()"><span class="material-symbols-rounded">close</span></button>
             </div>
-            <div style="font-size:0.85rem; line-height:1.6; color:var(--text-color);">
-                <p style="margin-bottom:10px;"><strong>escape.labs</strong> ist eine experimentelle Plattform für Schnitzeljagden, Krimis und Escape-Games.</p>
-                <div style="background:rgba(128,128,128,0.06); border-left:3px solid var(--accent); padding:10px; border-radius:10px; margin-bottom:10px;">
-                    <strong style="color:#fff;">forester.labs:</strong> Private Sammlung kleiner Web-Apps und Widgets von Marco Förster.
-                </div>
-                <div style="background:rgba(229, 9, 20, 0.08); border:1px solid rgba(229, 9, 20, 0.3); border-radius:12px; padding:12px; margin-bottom:14px; font-size:0.78rem;">
-                    <strong style="color:var(--accent);">⚠️ Disclaimer:</strong> Ich bin kein hauptberuflicher Entwickler. Alles entsteht privat, experimentell und ohne kommerziellen Anspruch. Es gibt keinerlei Garantie auf Fehlerfreiheit oder permanente Stabilität.
-                </div>
-                <a href="http://www.marcofoerster.com" target="_blank" class="btn-main" style="text-decoration:none;">Website & Kontakt (Marco Förster)</a>
+            
+            <div style="font-size:0.88rem; line-height:1.6; color:var(--text-color); display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+                <p>
+                    <strong>escape.labs</strong> ist eine experimentelle Plattform für Schnitzeljagden, Krimis und Escape-Games.
+                </p>
+                <p>
+                    <strong>forester.labs:</strong> Private Sammlung kleiner Web-Apps und Widgets von Marco Förster.
+                </p>
+                <p style="color:var(--text-muted); font-size:0.82rem;">
+                    <strong>Disclaimer:</strong> Ich bin kein hauptberuflicher Entwickler. Alles entsteht privat, experimentell und ohne kommerziellen Anspruch. Es gibt keinerlei Garantie auf Fehlerfreiheit oder permanente Stabilität.
+                </p>
             </div>
-            <button onclick="UI.closeAbout()" class="btn-sub" style="margin-top:6px;">Schließen</button>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <a href="http://www.marcofoerster.com" target="_blank" class="btn-sub" style="text-decoration:none; text-align:center;">Website & Kontakt (Marco Förster)</a>
+                <button onclick="UI.closeAbout()" class="btn-sub">Schließen</button>
+            </div>
         </div>
     </div>
 
