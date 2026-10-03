@@ -182,29 +182,31 @@ resetSettings() {
     },
     closeCastModal() { document.getElementById('modal-cast').classList.remove('active'); },
 
-    openToolbox() {
+openToolbox() {
         document.getElementById('modal-toolbox').classList.add('active');
         document.getElementById('toolbox-active-view').classList.add('hidden');
     },
-  closeToolbox() {
-    if (qrScanner) { 
-        qrScanner.stop().then(() => qrScanner.clear()).catch(() => {}); 
-        qrScanner = null; 
-    }
-    if (compassWatchId) {
-        window.removeEventListener('deviceorientationabsolute', compassWatchId, true);
-        window.removeEventListener('deviceorientation', compassWatchId, true);
-        compassWatchId = null;
-    }
 
-    const modal = document.getElementById('modal-toolbox');
-    if (modal) {
-        modal.classList.remove('active');
-        modal.classList.add('hidden');
-    }
-},
-   openToolView(tool) {
+    closeToolbox() {
+        if (qrScanner) { 
+            try { qrScanner.stop().then(() => qrScanner.clear()); } catch(e){} 
+            qrScanner = null; 
+        }
+        if (compassWatchId) {
+            window.removeEventListener('deviceorientationabsolute', compassWatchId, true);
+            window.removeEventListener('deviceorientation', compassWatchId, true);
+            compassWatchId = null;
+        }
+
+        const modal = document.getElementById('modal-toolbox');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    },
+   
+  openToolView(tool) {
         const v = document.getElementById('toolbox-active-view');
+        if (!v) return;
         v.classList.remove('hidden');
 
         if (tool === 'scanner') {
