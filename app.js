@@ -195,11 +195,11 @@ resetSettings() {
         document.getElementById('modal-toolbox').classList.remove('active');
     },
 
-    openToolView(tool) {
+   openToolView(tool) {
         const v = document.getElementById('toolbox-active-view');
         v.classList.remove('hidden');
 
-      if (tool === 'scanner') {
+        if (tool === 'scanner') {
             v.innerHTML = `
                 <div id="qr-reader" style="width:100%; border-radius:12px; overflow:hidden;"></div>
                 <p style="font-size:0.75rem; color:var(--text-muted); text-align:center; margin-top:8px;">Kamera auf QR-Code halten.</p>
@@ -231,22 +231,6 @@ resetSettings() {
                 </div>
             `;
             App.startCompass();
-        }
-       }
-      
-            if (window.DeviceOrientationEvent) {
-                compassWatchId = (e) => {
-                    let heading = e.webkitCompassHeading;
-                    if (heading === undefined && e.alpha !== null) heading = Math.abs(e.alpha - 360);
-                    if (heading !== undefined && !isNaN(heading)) {
-                        const deg = Math.round(heading);
-                        document.getElementById('compass-deg').innerText = deg + "°";
-                        const dirs = ["Norden", "Nord-Ost", "Osten", "Süd-Ost", "Süden", "Süd-West", "Westen", "Nord-West"];
-                        document.getElementById('compass-dir').innerText = dirs[Math.round(deg / 45) % 8];
-                    }
-                };
-                window.addEventListener('deviceorientation', compassWatchId);
-            }
         }
     },
 
@@ -1197,17 +1181,13 @@ startCompass() {
         const handleOrient = (e) => {
             let heading = null;
 
-            // iOS Safari
             if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
                 heading = e.webkitCompassHeading;
-            } 
-            // Android Chrome Absolute
-            else if (e.alpha !== null && e.alpha !== undefined) {
+            } else if (e.alpha !== null && e.alpha !== undefined) {
                 heading = (360 - e.alpha) % 360;
             }
 
             if (heading !== null && !isNaN(heading)) {
-                // Glättungs-Filter (Tiefpass gegen Zappeln)
                 if (lastHeading === null) {
                     lastHeading = heading;
                 } else {
