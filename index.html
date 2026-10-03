@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>escape.labs ❖ by forester.labs</title>
+
+    <meta name="theme-color" id="meta-theme-color" content="#131317">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="escape.labs">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    
+    <!-- Flat Icons & Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Comfortaa:wght@600;700&family=Playfair+Display:ital,wght@0,600;1,600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet & QR-Scanner -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <!-- Unser ausgelagertes Design -->
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body class="dark-mode">
+
+    <!-- KONFETTI LEINWAND -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- 0. SPLASH SCREEN -->
+    <div id="splash-screen" onclick="App.dismissSplash()">
+        <div class="splash-logo">escape<span>.labs</span></div>
+        <div class="splash-tag">mini escape games for you</div>
+    </div>
+
+    <!-- FAKE-ANRUF OVERLAY -->
+    <div id="call-overlay">
+        <div style="text-align:center;">
+            <div class="call-pulsar"><span class="material-symbols-rounded" style="font-size:55px;">call</span></div>
+            <h2 id="call-caller-name" style="margin-top:20px; font-size:1.4rem;">Missions-Zentrale</h2>
+            <div id="call-status-label" style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">Eingehender Funkspruch...</div>
+        </div>
+        <div id="call-action-btns" style="display:flex; justify-content:space-around; width:100%; max-width:320px;">
+            <button onclick="App.rejectCall()" class="icon-btn" style="width:65px; height:65px; background:#ef4444; color:#fff;">
+                <span class="material-symbols-rounded" style="font-size:32px;">call_end</span>
+            </button>
+            <button onclick="App.acceptCall()" class="icon-btn" style="width:65px; height:65px; background:#22c55e; color:#fff;">
+                <span class="material-symbols-rounded" style="font-size:32px;">call</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- HEADER: CLEAN & 100% ZENTRIERT -->
+    <header>
+        <div class="header-left">
+            <button class="icon-btn" onclick="UI.toggle('menu-panel')"><span class="material-symbols-rounded">menu</span></button>
+        </div>
+        <div class="brand-title" onclick="App.showHome()">escape<span>.labs</span></div>
+        <div class="header-right">
+            <button class="icon-btn" onclick="UI.toggle('settings-panel')" title="Einstellungen"><span class="material-symbols-rounded">settings</span></button>
+        </div>
+    </header>
+
+    <!-- LIVE TIPP DER HÜTER -->
+    <div id="live-hint-bar" class="toast-banner hidden" style="margin: 10px 12px 0 12px;">
+        <strong style="color:var(--accent);">👁️ Funkspruch der Spielleitung:</strong>
+        <div id="live-hint-text"></div>
+    </div>
+
+    <!-- MODAL: WERKZEUGKASTEN -->
+    <div id="modal-toolbox" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-rounded" style="color:var(--accent);">home_repair_service</span> Werkzeugkasten
+                </h3>
+                <button class="icon-btn" onclick="UI.closeToolbox()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+                <button onclick="UI.openToolView('scanner')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">qr_code_scanner</span>
+                    <span>QR-Scanner</span>
+                </button>
+                <button onclick="UI.openToolView('notes')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">edit_note</span>
+                    <span>Notizen & Skizzen</span>
+                </button>
+                <button onclick="App.toggleTorch()" id="btn-tool-torch" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">flashlight_on</span>
+                    <span id="lbl-tool-torch">Taschenlampe</span>
+                </button>
+                <button onclick="UI.openToolView('compass')" class="btn-sub" style="flex-direction:column; padding:12px 6px; margin:0;">
+                    <span class="material-symbols-rounded" style="font-size:26px; color:var(--accent);">explore</span>
+                    <span>Peilkompass</span>
+                </button>
+            </div>
+            <div id="toolbox-active-view" class="hidden" style="border-top:1px solid var(--border); padding-top:12px;"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: NOTFALL-LÖSUNGSBUCH MIT STRAFZEIT -->
+    <div id="modal-walkthrough" class="modal-overlay">
+        <div class="modal-content" style="text-align:center;">
+            <div style="font-size:40px; color:#f59e0b; margin-bottom:6px;">⚠️</div>
+            <h3 style="font-size:1.15rem; margin-bottom:8px;">Notfall-Lösungsbuch</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5; margin-bottom:16px;">
+                Steckt euer Team fest? Das Aufdecken der Lösung beendet den Frust, kostet euch aber <strong>+10 Minuten Strafzeit</strong> auf der Missionsuhr!
+            </p>
+            <div id="walkthrough-solution-box" class="hidden" style="background:rgba(229,9,20,0.1); border:1px solid var(--accent); padding:12px; border-radius:12px; margin-bottom:14px; font-weight:700;"></div>
+            <button id="btn-advance-solution" onclick="App.applySolutionAndAdvance()" class="btn-main hidden" style="background:#22c55e; margin-bottom:8px;">
+                <span class="material-symbols-rounded">arrow_forward</span> Lösung übernehmen & weiter
+            </button>
+            <button id="btn-reveal-solution" onclick="App.confirmRevealSolution()" class="btn-main" style="background:#f59e0b;">Ja, Lösung aufdecken (+10 Min)</button>
+            <button onclick="UI.closeWalkthrough()" class="btn-sub" style="margin-top:8px;">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- MODAL: MEIN PERSÖNLICHES ROLLENPROFIL -->
+    <div id="modal-role" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-rounded" style="color:var(--accent);">badge</span> Mein Rollen-Profil
+                </h3>
+                <button class="icon-btn" onclick="UI.closeRoleModal()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div id="role-profile-content"></div>
+            <button onclick="UI.closeRoleModal()" class="btn-main" style="margin-top:14px;">Alles klar</button>
+        </div>
+    </div>
+
+    <!-- MODAL: CHARAKTERE & CASTING VOR DEM SPIEL -->
+    <div id="modal-cast" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-rounded" style="color:var(--accent);">theater_comedy</span> Charaktere & Rollen
+                </h3>
+                <button class="icon-btn" onclick="UI.closeCastModal()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Steckbriefe, Rollen und Verkleidungstipps für diese Tour:</p>
+            <div id="cast-cards-list"></div>
+            <button onclick="UI.closeCastModal()" class="btn-main" style="margin-top:14px;">Schließen</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ERSTE SCHRITTE -->
+    <div id="modal-guide" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem;">Erste Schritte</h3>
+                <button class="icon-btn" onclick="UI.closeGuide()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div style="font-size:0.85rem; line-height:1.6; color:var(--text-color);">
+                <div style="margin-bottom:10px;">
+                    <strong style="color:var(--accent);">📲 1. App-Installation:</strong><br>
+                    • Android: Dreipunkt-Menü ➔ <em>„App installieren“</em>.<br>
+                    • iPhone: Teilen <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">ios_share</span> ➔ <em>„Zum Home-Bildschirm“</em>.
+                </div>
+                <div style="margin-bottom:10px;">
+                    <strong style="color:var(--accent);">🌐 2. Spiele laden:</strong><br>
+                    Wechsle auf <strong>„Online-Store“</strong> und lade Missionen direkt auf dein Handy herunter.
+                </div>
+                <div>
+                    <strong style="color:var(--accent);">🔗 3. Teilen:</strong><br>
+                    Klicke im Spielmenü auf <em>„Link teilen“</em>. Der Link öffnet das Spiel direkt bei deinen Freunden.
+                </div>
+            </div>
+            <button onclick="UI.closeGuide()" class="btn-main" style="margin-top:14px;">Verstanden</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ÜBER FORESTER.LABS & DISCLAIMER -->
+    <div id="modal-about" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-rounded" style="color:var(--accent);">science</span> Über dieses Projekt
+                </h3>
+                <button class="icon-btn" onclick="UI.closeAbout()"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div style="font-size:0.85rem; line-height:1.6; color:var(--text-color);">
+                <p style="margin-bottom:10px;"><strong>escape.labs</strong> ist eine experimentelle Plattform für Schnitzeljagden, Krimis und Escape-Games.</p>
+                <div style="background:rgba(128,128,128,0.06); border-left:3px solid var(--accent); padding:10px; border-radius:10px; margin-bottom:10px;">
+                    <strong style="color:#fff;">forester.labs:</strong> Private Sammlung kleiner Web-Apps und Widgets von Marco Förster.
+                </div>
+                <div style="background:rgba(229, 9, 20, 0.08); border:1px solid rgba(229, 9, 20, 0.3); border-radius:12px; padding:12px; margin-bottom:14px; font-size:0.78rem;">
+                    <strong style="color:var(--accent);">⚠️ Disclaimer:</strong> Ich bin kein hauptberuflicher Entwickler. Alles entsteht privat, experimentell und ohne kommerziellen Anspruch. Es gibt keinerlei Garantie auf Fehlerfreiheit oder permanente Stabilität.
+                </div>
+                <a href="http://www.marcofoerster.com" target="_blank" class="btn-main" style="text-decoration:none;">Website & Kontakt (Marco Förster)</a>
+            </div>
+            <button onclick="UI.closeAbout()" class="btn-sub" style="margin-top:6px;">Schließen</button>
+        </div>
+    </div>
+
+    <!-- HAUPTBEREICH (VIEWS) -->
+    <main>
+        <!-- 1. STARTSEITE: MEINE SPIELE vs. STORE -->
+        <section id="view-home" class="view-section active">
+            <div class="glass-card">
+                <div class="hub-tabs">
+                    <button id="tab-btn-local" class="hub-tab-btn active" onclick="App.switchHubTab('local')">
+                        <span class="material-symbols-rounded" style="font-size:18px;">inventory_2</span> Meine Spiele
+                    </button>
+                    <button id="tab-btn-store" class="hub-tab-btn" onclick="App.switchHubTab('store')">
+                        <span class="material-symbols-rounded" style="font-size:18px;">cloud_download</span> Online-Store
+                    </button>
+                </div>
+                <div id="hub-view-local"><div id="games-container"></div></div>
+                <div id="hub-view-store" class="hidden">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">Verfügbare Szenarien im Store:</p>
+                    <div id="store-container"><p style="text-align:center; padding:20px; color:var(--text-muted);">Katalog wird geladen...</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. HAUPTMENÜ EINES SPIELS -->
+        <section id="view-game-menu" class="view-section">
+            <div class="glass-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="badge" id="gm-tag">Missions-Akte</span>
+                    <span id="gm-progress-badge" class="badge" style="color:#22c55e;"></span>
+                </div>
+                <h1 id="gm-title" style="font-size: 1.35rem; margin-bottom: 2px;">Titel</h1>
+                <p id="gm-sub" style="font-size: 0.85rem; color: var(--text-muted);">Untertitel</p>
+                <img id="gm-img" class="preview-image" src="" alt="Titelbild">
+                <div style="margin: 12px 0; font-size: 0.95rem; line-height: 1.6;" id="gm-desc"></div>
+                <div style="background: rgba(128,128,128,0.06); padding: 12px; border-radius: 14px; margin-bottom: 14px; font-size: 0.85rem; color: var(--text-muted);">
+                    📍 <strong>Region:</strong> <span id="gm-region"></span><br>
+                    ⏱️ <strong>Dauer:</strong> <span id="gm-time"></span>
+                </div>
+                <button id="btn-gm-continue" onclick="App.openLogin(false)" class="btn-main">
+                    <span class="material-symbols-rounded">play_arrow</span> <span id="lbl-gm-continue">Spiel starten</span>
+                </button>
+                <button onclick="App.startFreshGame()" class="btn-sub" style="margin-top:8px;">
+                    <span class="material-symbols-rounded">restart_alt</span> Spielstand zurücksetzen
+                </button>
+                <button onclick="App.shareCurrentGame()" class="btn-sub" style="margin-top:8px;">
+                    <span class="material-symbols-rounded">share</span> Link zum Spiel teilen
+                </button>
+                <button onclick="App.showHome()" class="btn-sub" style="margin-top:8px;">
+                    <span class="material-symbols-rounded">arrow_back</span> Zurück zur Übersicht
+                </button>
+                <button onclick="App.deleteCurrentGame()" class="btn-sub" style="color:#ef4444; border-color:rgba(239,68,68,0.25); margin-top: 14px;">
+                    <span class="material-symbols-rounded">delete</span> Spiel deinstallieren
+                </button>
+            </div>
+        </section>
+
+        <!-- 3. MODULARE ANMELDUNG (SELECT / PIN / PASSWORD) -->
+        <section id="view-login" class="view-section">
+            <div class="glass-card" style="text-align: center;">
+                <span class="badge" id="login-badge">Anmeldung</span>
+                <h1 id="login-game-title" style="font-size: 1.3rem; margin-bottom: 4px;">Titel</h1>
+                <p id="login-prompt-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Wähle deine Rolle oder gib deinen Code ein:</p>
+                <div id="auth-dynamic-container"></div>
+                <div id="login-feedback" style="color:var(--accent); font-size:0.85rem; margin-top:8px;"></div>
+                <div id="login-pin-help" style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:0.8rem; color:var(--text-muted); text-align:left;"></div>
+                <button onclick="UI.showView('view-game-menu')" class="btn-sub" style="margin-top: 14px;">← Zurück zum Spiel-Menü</button>
+            </div>
+        </section>
+
+        <!-- 4. STATION IM SPIEL -->
+        <section id="view-station" class="view-section">
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <span class="badge" id="st-badge">Station I</span>
+                    <span id="st-location" style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">Ort</span>
+                </div>
+                <h1 id="st-title" style="font-size: 1.35rem; margin-bottom: 10px;">Titel</h1>
+                <div id="st-media-box"></div>
+                <div id="st-story" style="margin: 12px 0; line-height: 1.6; font-size: 1rem;"></div>
+
+                <div style="background: rgba(128,128,128,0.06); border: 1px solid var(--border); padding: 16px; border-radius: 14px; margin-top: 14px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent);">✦ DIE PRÜFUNG:</span>
+                    <p id="st-question" style="font-weight: 600; margin: 6px 0 10px 0;"></p>
+                    <div id="quiz-inputs"></div>
+                    <div id="game-feedback" style="text-align: center; font-size: 0.85rem; margin-top: 8px; min-height: 20px;"></div>
+
+                    <div id="auto-hint-box" class="hidden" style="margin-top:12px; border-top:1px dashed var(--border); padding-top:10px; text-align:center;">
+                        <span id="auto-hint-status" style="font-size:0.8rem; color:var(--accent); display:block; margin-bottom:6px;">3 Fehlversuche erkannt:</span>
+                        <button id="btn-show-hint" onclick="App.revealAutoHint()" class="btn-sub" style="border-color:var(--accent);"><span class="material-symbols-rounded">lightbulb</span> <span id="lbl-show-hint">Tipp anzeigen</span></button>
+                        <div id="auto-hint-text" class="hidden" style="margin-top:8px; font-style:italic; font-size:0.85rem; color:var(--text-color); line-height:1.5; text-align:left; background:rgba(0,0,0,0.25); padding:10px; border-radius:10px;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. DIE KARTE MIT GPS-PUNKT -->
+        <section id="view-map" class="view-section">
+            <div class="glass-card">
+                <span class="badge">Orientierung</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 4px;">Fährtenkarte</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Koordinaten & dein Live-Standort (Blauer Punkt):</p>
+                <div id="game-map"></div>
+                <div id="map-info-text" style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-top: 8px;">Standort-Ortung aktiv. Tippe auf Pins für Infos.</div>
+            </div>
+        </section>
+
+        <!-- 6. ERMITTLUNGSAKTE -->
+        <section id="view-dossier" class="view-section">
+            <div class="glass-card">
+                <span class="badge">Dokumente</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 6px;">Ermittlungsakte</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Geborgene Hinweise und Fundstücke:</p>
+                <div id="dossier-items"></div>
+            </div>
+        </section>
+
+        <!-- 7. HÜTER-RAT -->
+        <section id="view-hueter" class="view-section">
+            <div class="glass-card">
+                <span class="badge" style="color:#f59e0b;">Spielleitung</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 14px;">Hüter-Rat</h1>
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 14px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Funkspruch senden:</label>
+                    <input type="text" id="hueter-hint-input" class="clean-input" placeholder="Tipp eingeben...">
+                    <button onclick="App.sendHint()" class="btn-main"><span class="material-symbols-rounded">send</span> Absenden</button>
+                    <button onclick="App.clearHint()" class="btn-sub">Tipp löschen</button>
+                </div>
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border);">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vor-Ort-Notiz (Physische Dinge):</label>
+                    <p id="hueter-note-text" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 6px; font-style: italic;">Lädt...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. ADMIN TOOLS -->
+        <section id="view-admin" class="view-section">
+            <div class="glass-card">
+                <span class="badge" style="color:var(--accent);">Admin Dashboard</span>
+                <h1 id="admin-game-title" style="font-size: 1.35rem; margin-bottom: 4px;">Zentrale Steuerung</h1>
+                <p id="admin-game-sub" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Missionskontrolle</p>
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 14px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Station anspringen:</label>
+                    <div id="admin-jump-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;"></div>
+                </div>
+                <div style="background: rgba(128,128,128,0.05); padding: 14px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 14px;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Funkspruch senden (Admin):</label>
+                    <input type="text" id="admin-hint-input" class="clean-input" placeholder="Tipp an Spieler senden...">
+                    <button onclick="App.sendAdminHint()" class="btn-main"><span class="material-symbols-rounded">send</span> Funkspruch senden</button>
+                    <button onclick="App.clearHint()" class="btn-sub">Tipp löschen</button>
+                </div>
+                <button onclick="App.triggerSimulatedCall('Spielleitung', 'Testfunkspruch der Zentrale. Ihr seid auf der richtigen Spur!')" class="btn-sub" style="margin-bottom:8px;">
+                    <span class="material-symbols-rounded">call</span> Test-Anruf an Spieler auslösen
+                </button>
+                <button onclick="App.adminUnlockAll()" class="btn-sub" style="margin-bottom:8px;">
+                    <span class="material-symbols-rounded">lock_open</span> Alle Aktenstücke entsperren
+                </button>
+                <button onclick="App.resetCurrentMission()" class="btn-sub" style="color:#ef4444; border-color:rgba(239,68,68,0.3); margin-top:8px;">
+                    <span class="material-symbols-rounded">restart_alt</span> Mission komplett zurücksetzen
+                </button>
+                <button onclick="UI.showView('view-station')" class="btn-main" style="margin-top: 14px;">Zur Station wechseln ➔</button>
+            </div>
+        </section>
+
+        <!-- 9. SIEGER-FINALE (EPIC VICTORY SCREEN) -->
+        <section id="view-victory" class="view-section">
+            <div class="glass-card" style="text-align:center;">
+                <div style="font-size:50px; margin-bottom:4px;">🏆</div>
+                <span class="badge" style="color:#22c55e;">Fall Gelöst</span>
+                <h1 id="vic-game-title" style="font-size: 1.5rem; margin-bottom: 4px;">Mission Vollbracht!</h1>
+                <div id="vic-rank-badge" style="font-size:1.1rem; font-weight:700; color:var(--accent); margin-bottom:12px;">Rang S: Großmeister</div>
+
+                <div style="background:rgba(128,128,128,0.06); padding:14px; border-radius:14px; margin-bottom:14px; font-size:0.85rem; line-height:1.6; text-align:left;">
+                    ⏱️ <strong>Reine Spielzeit:</strong> <span id="vic-time"></span><br>
+                    ⚠️ <strong>Strafzeit (Lösungsbuch):</strong> <span id="vic-penalties">0 Min</span><br>
+                    🧩 <strong>Gelöste Rätsel:</strong> <span id="vic-station-count"></span><br>
+                    📅 <strong>Abschlussdatum:</strong> <span id="vic-date"></span>
+                </div>
+
+                <canvas id="cert-canvas" width="600" height="400" style="width:100%; border-radius:12px; border:1px solid var(--border); margin-bottom:10px;"></canvas>
+                <button onclick="App.downloadCertificate()" class="btn-main"><span class="material-symbols-rounded">download</span> Urkunde als Bild speichern</button>
+
+                <div id="vic-epilogue-box" class="hidden" style="margin-top:16px; border-top:1px solid var(--border); padding-top:14px;">
+                    <span class="badge">Geheime Botschaft</span>
+                    <div id="vic-epilogue-video-wrap" style="border-radius:12px; overflow:hidden; margin-top:6px;"></div>
+                </div>
+
+            
+
+                <button onclick="App.showHome()" class="btn-sub" style="margin-top:16px;">Zurück zum Hauptmenü</button>
+            </div>
+        </section>
+
+        <!-- 10. DEV-STUDIO (TEST-SANDBOX) -->
+        <section id="view-dev-studio" class="view-section">
+            <div class="glass-card">
+                <span class="badge" style="color:var(--accent);">Admin-Bereich</span>
+                <h1 style="font-size: 1.35rem; margin-bottom: 4px;">Admin-Studio</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Spiele isoliert testen, validieren & probespielen:</p>
+                <div style="background: rgba(128,128,128,0.05); border:1px solid var(--border); padding:14px; border-radius:14px; margin-bottom:14px;">
+                    <strong style="font-size:0.85rem; color:#fff;">JSON-Datei vom PC wählen:</strong>
+                    <input type="file" id="dev-file-input" accept=".json" class="clean-input" style="padding:10px; font-size:0.8rem; margin:8px 0;">
+                    <button onclick="App.devValidateAndSandbox()" class="btn-main" style="font-size:0.85rem; padding:10px;">
+                        <span class="material-symbols-rounded">science</span> In Sandbox probespielen
+                    </button>
+                </div>
+                <div id="dev-report-box" class="hidden" style="background:#09090d; border-radius:12px; padding:12px; font-size:0.8rem; line-height:1.6; border:1px solid var(--border); margin-bottom:14px;"></div>
+                <button onclick="App.showHome()" class="btn-sub">← Admin-Bereich verlassen</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- UNTERE NAVIGATION (DYNAMISCH) -->
+    <nav id="game-bottom-nav" class="hidden"></nav>
+
+    <!-- FOOTER -->
+    <footer id="app-footer">
+        <div>Ein Produkt von <span style="font-weight:700;">forester.labs</span> ❖ v0.0.2</div>
+        <div style="opacity: 0.6; margin-top: 2px;">made by <a href="http://www.marcofoerster.com" target="_blank" class="footer-link">Marco Förster</a></div>
+    </footer>
+
+    <!-- LINKES HAMBURGER-MENÜ -->
+    <div id="menu-panel" class="side-panel">
+        <div class="panel-header">
+            <h2>NAVIGATION</h2>
+            <button class="icon-btn" onclick="UI.toggle('menu-panel')"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div id="menu-hub-content">
+            <div class="menu-divider">Plattform</div>
+            <div class="menu-link" onclick="UI.openGuide(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">help_outline</span> Erste Schritte & Hilfe
+            </div>
+            <div class="menu-link" onclick="UI.openAbout(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">science</span> Was ist escape.labs?
+            </div>
+            <div class="menu-link" onclick="App.switchHubTab('store'); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">cloud_download</span> Online-Store
+            </div>
+        </div>
+
+        <div id="menu-game-content" class="hidden">
+            <div style="background:rgba(128,128,128,0.06); padding:12px; border-radius:14px; border:1px solid var(--border); margin-bottom:14px; text-align:center;">
+                <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Missions-Zeit</div>
+                <div id="timer-display" style="font-size:1.4rem; font-weight:700; color:var(--accent); font-family:monospace; margin:4px 0;">00:00:00</div>
+                <button onclick="App.toggleTimer()" class="btn-sub" style="padding:6px; font-size:0.75rem; margin:0;">
+                    <span class="material-symbols-rounded" id="timer-btn-icon" style="font-size:16px;">pause</span>
+                    <span id="timer-btn-label">Pausieren</span>
+                </button>
+            </div>
+            <div class="menu-link" onclick="UI.openToolbox(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded" style="color:var(--accent);">home_repair_service</span> Werkzeugkasten
+            </div>
+            <div class="menu-link" onclick="UI.openWalkthrough(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded" style="color:#f59e0b;">menu_book</span> Notfall-Lösungsbuch
+            </div>
+            <div class="menu-link" onclick="UI.openRoleProfile(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">badge</span> Mein Rollen-Profil
+            </div>
+            <div class="menu-link" onclick="UI.openCastModal(); UI.toggle('menu-panel');">
+                <span class="material-symbols-rounded">theater_comedy</span> Team-Charaktere & Rollen
+            </div>
+            <div class="menu-divider">Missions-Steuerung</div>
+            <div class="menu-link" onclick="App.leaveGame()" style="color:var(--accent);">
+                <span class="material-symbols-rounded">logout</span> Spiel verlassen
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid var(--border);">
+            <div id="menu-user-status" style="font-size: 0.8rem; color: var(--text-muted);">Kein Spiel geöffnet</div>
+        </div>
+    </div>
+
+    <!-- RECHTES SETTINGS-MENÜ -->
+    <div id="settings-panel" class="side-panel">
+        <div class="panel-header">
+            <h2>EINSTELLUNGEN</h2>
+            <button class="icon-btn" onclick="UI.toggle('settings-panel')"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div style="margin-bottom: 22px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Erscheinungsbild</label>
+            <div style="display: flex; gap: 14px;">
+                <button id="theme-btn-dark" class="round-icon-btn active" onclick="UI.setTheme('dark')" title="Dunkler Modus">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                </button>
+                <button id="theme-btn-light" class="round-icon-btn" onclick="UI.setTheme('light')" title="Heller Modus">
+                    <span class="material-symbols-rounded">light_mode</span>
+                </button>
+            </div>
+        </div>
+        <div style="margin-bottom: 22px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Akzentfarbe</label>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <input type="color" id="accentColorPicker" value="#e50914" oninput="UI.setAccent(this.value)">
+                <span style="font-size:0.85rem; color:var(--text-muted);">Farbe anpassen</span>
+            </div>
+        </div>
+        <div style="margin-bottom: 22px;">
+            <label id="lbl-font-size" style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Schriftgröße (16px)</label>
+            <input type="range" id="fontSizeRange" min="13" max="22" value="16" oninput="UI.setFontSize(this.value)">
+        </div>
+        <div style="margin-bottom: 22px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase;">Haptik & Feedback</label>
+            <label style="display:flex; align-items:center; gap:10px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" id="check-haptics" onchange="UI.toggleHaptics(this.checked)" checked style="accent-color:var(--accent); width:18px; height:18px;">
+                <span>Vibration bei Rätseln</span>
+            </label>
+        </div>
+        <div style="margin-top: 50px; padding-top: 15px; border-top: 1px solid var(--border); text-align: center;">
+            <button onclick="App.promptDevAccess()" style="background:none; border:none; color:var(--text-muted); opacity:0.35; font-size:0.75rem; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:4px;">
+                <span class="material-symbols-rounded" style="font-size:15px;">admin_panel_settings</span> Admin-Bereich
+            </button>
+        </div>
+    </div>
+
+    <!-- Unsere ausgelagerte Logik -->
+    <script src="./app.js"></script>
+</body>
+</html>
