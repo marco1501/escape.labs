@@ -186,14 +186,19 @@ resetSettings() {
         document.getElementById('modal-toolbox').classList.add('active');
         document.getElementById('toolbox-active-view').classList.add('hidden');
     },
-    closeToolbox() {
-        if (qrScanner) { qrScanner.stop().then(() => qrScanner.clear()).catch(()=>{}); qrScanner = null; }
-        if (window.DeviceOrientationEvent && compassWatchId) {
-            window.removeEventListener('deviceorientation', compassWatchId);
-            compassWatchId = null;
-        }
-        document.getElementById('modal-toolbox').classList.remove('active');
-    },
+   closeToolbox() {
+    if (qrScanner) { 
+        qrScanner.stop().then(() => qrScanner.clear()).catch(() => {}); 
+        qrScanner = null; 
+    }
+    if (compassWatchId) {
+        window.removeEventListener('deviceorientationabsolute', compassWatchId, true);
+        window.removeEventListener('deviceorientation', compassWatchId, true);
+        compassWatchId = null;
+    }
+    const modal = document.getElementById('modal-toolbox');
+    if (modal) modal.classList.add('hidden');
+},
 
    openToolView(tool) {
         const v = document.getElementById('toolbox-active-view');
