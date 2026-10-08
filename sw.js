@@ -1,4 +1,4 @@
-const CACHE_NAME = 'escapelabs-v0.1.2';
+const CACHE_NAME = 'escapelabs-v0.1.3';
 
 const ASSETS = [
   './',
