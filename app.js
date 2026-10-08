@@ -1,5 +1,5 @@
 /* ========================================================
-   escape.labs ❖ Master Engine (v0.0.2)
+   escape.labs ❖ Master Engine (v0.0.3 - Harz Edition Full)
    by forester.labs
    ======================================================== */
 
@@ -24,6 +24,7 @@ let compassWatchId = null;
 let videoTrack = null;
 let wakeLock = null;
 let audioCtx = null;
+let isMuted = false;
 
 /* ========================================================
    1. UI CONTROLLER (THEMES, VIEWS, MODALS)
@@ -38,15 +39,18 @@ const UI = {
         document.getElementById('menu-panel').classList.remove('active');
         window.scrollTo(0, 0);
 
-        const inGameViews = ['view-station', 'view-map', 'view-dossier', 'view-hueter', 'view-admin', 'view-victory'];
+        const inGameViews = ['view-station', 'view-map', 'view-dossier', 'view-hueter', 'view-admin', 'view-victory', 'view-story'];
         const isGaming = inGameViews.includes(viewId);
         
         document.body.classList.toggle('in-game', isGaming);
-        document.getElementById('game-bottom-nav').classList.toggle('hidden', !isGaming || viewId === 'view-victory');
-        document.getElementById('app-footer').classList.toggle('hidden', isGaming || viewId === 'view-dev-studio');
+        const bNav = document.getElementById('game-bottom-nav');
+        if (bNav) bNav.classList.toggle('hidden', !isGaming || viewId === 'view-victory');
+        const ftr = document.getElementById('app-footer');
+        if (ftr) ftr.classList.toggle('hidden', isGaming || viewId === 'view-dev-studio');
 
         if (isGaming) this.updateBottomNavState(viewId);
         if (viewId === 'view-map') setTimeout(() => App.initOrUpdateMap(), 150);
+        if (viewId === 'view-story') App.renderChronicle();
 
         if (pushHistory) history.pushState({ view: viewId }, '', '#' + viewId);
     },
@@ -65,6 +69,11 @@ const UI = {
         if (theme.bgOuter) r.style.setProperty('--bg-outer', theme.bgOuter);
         if (theme.bgInner) r.style.setProperty('--bg-inner', theme.bgInner);
         if (theme.textColor) r.style.setProperty('--text-color', theme.textColor);
+        if (theme.bgImage) {
+            document.body.style.backgroundImage = `linear-gradient(rgba(11,16,23,0.88), rgba(11,16,23,0.95)), url('${theme.bgImage}')`;
+            document.body.style.backgroundSize = "cover";
+            document.body.style.backgroundAttachment = "fixed";
+        }
         if (theme.font) document.body.style.fontFamily = theme.font;
 
         const metaTheme = document.getElementById('meta-theme-color');
@@ -73,44 +82,52 @@ const UI = {
 
     resetDefaultTheme() {
         this.initSettings();
+        document.body.style.backgroundImage = "none";
         document.body.style.fontFamily = "'All Round Gothic', 'Allround Gothic', 'Comfortaa', 'Poppins', sans-serif";
     },
-resetSettings() {
+
+    resetSettings() {
         localStorage.removeItem('escape_theme');
         localStorage.removeItem('escape_accent');
         localStorage.removeItem('escape_font_size');
         localStorage.removeItem('escape_haptics');
 
-        // Standardwerte wiederherstellen
         this.setTheme('dark');
-        this.setAccent('#e50914');
-        document.getElementById('accentColorPicker').value = '#e50914';
+        this.setAccent('#2e7d32');
+        const picker = document.getElementById('accentColorPicker');
+        if (picker) picker.value = '#2e7d32';
         this.setFontSize(16);
-        document.getElementById('fontSizeRange').value = 16;
-        document.getElementById('check-haptics').checked = true;
+        const range = document.getElementById('fontSizeRange');
+        if (range) range.value = 16;
+        const hapt = document.getElementById('check-haptics');
+        if (hapt) hapt.checked = true;
         this.toggleHaptics(true);
     },
+
     setTheme(mode) {
         document.body.className = mode + '-mode';
-        document.getElementById('theme-btn-dark').classList.toggle('active', mode === 'dark');
-        document.getElementById('theme-btn-light').classList.toggle('active', mode === 'light');
+        const dBtn = document.getElementById('theme-btn-dark');
+        if (dBtn) dBtn.classList.toggle('active', mode === 'dark');
+        const lBtn = document.getElementById('theme-btn-light');
+        if (lBtn) lBtn.classList.toggle('active', mode === 'light');
         const metaTheme = document.getElementById('meta-theme-color');
-        if (metaTheme) metaTheme.setAttribute('content', mode === 'dark' ? '#131317' : '#ffffff');
+        if (metaTheme) metaTheme.setAttribute('content', mode === 'dark' ? '#0b1017' : '#ffffff');
         localStorage.setItem('escape_theme', mode);
     },
 
     setAccent(color) {
         document.documentElement.style.setProperty('--accent', color);
-        const r = parseInt(color.slice(1, 3), 16);
-        const g = parseInt(color.slice(3, 5), 16);
-        const b = parseInt(color.slice(5, 7), 16);
-        document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.35)`);
+        const r = parseInt(color.slice(1, 3), 16) || 46;
+        const g = parseInt(color.slice(3, 5), 16) || 125;
+        const b = parseInt(color.slice(5, 7), 16) || 50;
+        document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.45)`);
         localStorage.setItem('escape_accent', color);
     },
 
     setFontSize(px) {
         document.documentElement.style.setProperty('--font-size', px + 'px');
-        document.getElementById('lbl-font-size').innerText = `Schriftgröße (${px}px)`;
+        const lbl = document.getElementById('lbl-font-size');
+        if (lbl) lbl.innerText = `Schriftgröße (${px}px)`;
         localStorage.setItem('escape_font_size', px);
     },
 
@@ -123,43 +140,46 @@ resetSettings() {
 
     initSettings() {
         const theme = localStorage.getItem('escape_theme') || 'dark';
-        const accent = localStorage.getItem('escape_accent') || '#e50914';
+        const accent = localStorage.getItem('escape_accent') || '#2e7d32';
         const size = localStorage.getItem('escape_font_size') || '16';
         const haptics = localStorage.getItem('escape_haptics') !== 'false';
 
         this.setTheme(theme);
         this.setAccent(accent);
-        document.getElementById('accentColorPicker').value = accent;
+        const picker = document.getElementById('accentColorPicker');
+        if (picker) picker.value = accent;
         this.setFontSize(size);
-        document.getElementById('fontSizeRange').value = size;
-        document.getElementById('check-haptics').checked = haptics;
+        const range = document.getElementById('fontSizeRange');
+        if (range) range.value = size;
+        const hapt = document.getElementById('check-haptics');
+        if (hapt) hapt.checked = haptics;
     },
 
     /* MODAL-HANDLING */
-    openGuide() { document.getElementById('modal-guide').classList.add('active'); },
-    closeGuide() { document.getElementById('modal-guide').classList.remove('active'); },
-
-    openAbout() { document.getElementById('modal-about').classList.add('active'); },
-    closeAbout() { document.getElementById('modal-about').classList.remove('active'); },
+    openGuide() { document.getElementById('modal-guide')?.classList.add('active'); },
+    closeGuide() { document.getElementById('modal-guide')?.classList.remove('active'); },
+    openAbout() { document.getElementById('modal-about')?.classList.add('active'); },
+    closeAbout() { document.getElementById('modal-about')?.classList.remove('active'); },
 
     openWalkthrough() {
         const box = document.getElementById('walkthrough-solution-box');
         const btn = document.getElementById('btn-reveal-solution');
         const advBtn = document.getElementById('btn-advance-solution');
-        box.classList.add('hidden');
+        if (box) box.classList.add('hidden');
         if (advBtn) advBtn.classList.add('hidden');
-        btn.classList.remove('hidden');
-        document.getElementById('modal-walkthrough').classList.add('active');
+        if (btn) btn.classList.remove('hidden');
+        document.getElementById('modal-walkthrough')?.classList.add('active');
     },
-    closeWalkthrough() { document.getElementById('modal-walkthrough').classList.remove('active'); },
+    closeWalkthrough() { document.getElementById('modal-walkthrough')?.classList.remove('active'); },
 
     openCastModal() {
         const g = App.getCurrentGameContext();
         const list = document.getElementById('cast-cards-list');
+        if (!list) return;
         list.innerHTML = "";
 
         if (!g || !g.cast || g.cast.length === 0) {
-            list.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-muted);">Keine speziellen Rollenprofile hinterlegt.</div>`;
+            list.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-muted);">Keine Rollenprofile hinterlegt.</div>`;
         } else {
             g.cast.forEach(c => {
                 const card = document.createElement('div');
@@ -178,13 +198,13 @@ resetSettings() {
                 list.appendChild(card);
             });
         }
-        document.getElementById('modal-cast').classList.add('active');
+        document.getElementById('modal-cast')?.classList.add('active');
     },
-    closeCastModal() { document.getElementById('modal-cast').classList.remove('active'); },
+    closeCastModal() { document.getElementById('modal-cast')?.classList.remove('active'); },
 
-openToolbox() {
-        document.getElementById('modal-toolbox').classList.add('active');
-        document.getElementById('toolbox-active-view').classList.add('hidden');
+    openToolbox() {
+        document.getElementById('modal-toolbox')?.classList.add('active');
+        document.getElementById('toolbox-active-view')?.classList.add('hidden');
     },
 
     closeToolbox() {
@@ -197,14 +217,10 @@ openToolbox() {
             window.removeEventListener('deviceorientation', compassWatchId, true);
             compassWatchId = null;
         }
-
-        const modal = document.getElementById('modal-toolbox');
-        if (modal) {
-            modal.classList.remove('active');
-        }
+        document.getElementById('modal-toolbox')?.classList.remove('active');
     },
-   
-  openToolView(tool) {
+
+    openToolView(tool) {
         const v = document.getElementById('toolbox-active-view');
         if (!v) return;
         v.classList.remove('hidden');
@@ -237,7 +253,6 @@ openToolbox() {
                     <div id="compass-deg" style="font-size:2.5rem; font-weight:700; color:var(--accent); font-family:monospace;">--°</div>
                     <div id="compass-dir" style="font-size:0.9rem; color:var(--text-muted); font-weight:600; margin-top:4px;">Peilung wird ermittelt...</div>
                     <button id="btn-compass-perm" onclick="App.requestCompassPermission()" class="btn-sub" style="margin-top:12px; display:none;">Kompass-Zugriff erlauben</button>
-                    <div style="margin-top:10px; font-size:0.75rem; color:var(--text-muted);">Smartphone flach halten & im 8er-Muster schwenken.</div>
                 </div>
             `;
             App.startCompass();
@@ -254,8 +269,7 @@ openToolbox() {
         let bio = "";
         let dresscode = "";
         if (g.cast && Array.isArray(g.cast)) {
-            const match = g.cast.find(c => (c.name && c.name.toLowerCase() === App.activeRole.name.toLowerCase()) || 
-                                           (c.role && c.role.toLowerCase() === App.activeRole.name.toLowerCase()));
+            const match = g.cast.find(c => (c.id === App.activeRole.id) || (c.name && c.name.toLowerCase() === App.activeRole.name.toLowerCase()));
             if (match) {
                 avatar = match.avatar || "";
                 bio = match.bio || "";
@@ -263,31 +277,26 @@ openToolbox() {
             }
         }
 
-        const roleTypeName = App.activeRole.type === 'admin' ? 'Admin / Spielleitung' : (App.activeRole.type === 'guardian' ? 'Hüter der Station' : 'Feld-Ermittler');
-
         container.innerHTML = `
             <div style="background:rgba(128,128,128,0.06); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px; text-align:center;">
                 ${avatar ? `<img src="${avatar}" style="width:75px; height:75px; border-radius:50%; object-fit:cover; border:2px solid var(--accent); margin-bottom:8px;">` : `
-                <div style="width:60px; height:60px; border-radius:50%; background:rgba(229,9,20,0.15); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; margin-bottom:8px;">
+                <div style="width:60px; height:60px; border-radius:50%; background:rgba(46,125,50,0.15); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; margin-bottom:8px;">
                     <span class="material-symbols-rounded" style="font-size:32px;">person</span>
                 </div>`}
                 <h3 style="font-size:1.15rem; color:var(--accent); margin-bottom:2px;">${App.activeRole.name}</h3>
-                <span class="badge" style="margin-bottom:0;">Rollen-Zuweisung: ${roleTypeName}</span>
+                <span class="badge" style="margin-bottom:0;">Rolle: ${App.activeRole.roleTitle || App.activeRole.name}</span>
             </div>
             <div style="background:rgba(128,128,128,0.04); border-left:3px solid var(--accent); padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; line-height:1.5;">
                 <strong style="color:#fff;">Deine Spezial-Aufgabe:</strong><br>
-                ${App.activeRole.note || 'Du bist gleichberechtigtes Mitglied der Gruppe und wirkst aktiv an allen Rätseln mit.'}
+                ${App.activeRole.note || 'Arbeite mit deinem Team zusammen, teile deine Hinweise und höre den anderen Rollen gut zu.'}
             </div>
             ${bio ? `<p style="font-size:0.82rem; color:var(--text-muted); line-height:1.5; margin-bottom:10px;">${bio}</p>` : ''}
             ${dresscode ? `<div style="font-size:0.78rem; background:rgba(0,0,0,0.3); padding:8px 10px; border-radius:8px; color:var(--text-color);">🎭 <strong>Empfohlene Requisite:</strong> ${dresscode}</div>` : ''}
         `;
-        document.getElementById('modal-role').classList.add('active');
+        document.getElementById('modal-role')?.classList.add('active');
     },
 
-    closeRoleModal() {
-        const m = document.getElementById('modal-role');
-        if (m) m.classList.remove('active');
-    }
+    closeRoleModal() { document.getElementById('modal-role')?.classList.remove('active'); }
 };
 
 window.addEventListener('popstate', (e) => {
@@ -361,12 +370,12 @@ const App = {
         const viewStore = document.getElementById('hub-view-store');
 
         if (tab === 'local') {
-            btnLocal.classList.add('active'); btnStore.classList.remove('active');
-            viewLocal.classList.remove('hidden'); viewStore.classList.add('hidden');
+            btnLocal?.classList.add('active'); btnStore?.classList.remove('active');
+            viewLocal?.classList.remove('hidden'); viewStore?.classList.add('hidden');
             this.renderHomeGames();
         } else {
-            btnStore.classList.add('active'); btnLocal.classList.remove('active');
-            viewStore.classList.remove('hidden'); viewLocal.classList.add('hidden');
+            btnStore?.classList.add('active'); btnLocal?.classList.remove('active');
+            viewStore?.classList.remove('hidden'); viewLocal?.classList.add('hidden');
             this.renderStore();
         }
     },
@@ -380,6 +389,7 @@ const App = {
 
     renderStore() {
         const container = document.getElementById('store-container');
+        if (!container) return;
         container.innerHTML = "";
 
         if (!this.catalog || this.catalog.length === 0) {
@@ -451,56 +461,63 @@ const App = {
         });
     },
 
+    deleteCurrentGame() {
+        if (!this.previewGameId) return;
+        const g = this.library[this.previewGameId];
+        if (confirm(`Möchtest du '${g.title}' wirklich aus deiner Bibliothek löschen?`)) {
+            delete this.library[this.previewGameId];
+            delete this.gameProgress[this.previewGameId];
+            this.saveLibrary();
+            this.saveProgress();
+            this.renderHomeGames();
+            this.showHome();
+        }
+    },
+
     showHome(pushHistory = true) {
         UI.resetDefaultTheme();
         this.renderHomeGames();
         UI.showView('view-home', pushHistory);
     },
 
- renderHomeGames() {
-    const container = document.getElementById('games-container');
-    container.innerHTML = "";
-    const keys = Object.keys(this.library);
+    renderHomeGames() {
+        const container = document.getElementById('games-container');
+        if (!container) return;
+        container.innerHTML = "";
+        const keys = Object.keys(this.library);
 
-    if (keys.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.85rem;">Kein Spiel installiert. Wechsle oben auf <strong>„Online-Store“</strong>!</div>`;
-        return;
-    }
+        if (keys.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.85rem;">Kein Spiel installiert. Lade dein Spiel über den Online-Store oder Dev-Modus!</div>`;
+            return;
+        }
 
-    keys.forEach(k => {
-        const g = this.library[k];
-        const prog = this.gameProgress[g.id] || { station: 1, unlocked: [], completed: false };
-        const isCompleted = prog.completed === true;
-        const isStarted = !isCompleted && (prog.station > 1 || prog.unlocked.length > 0);
+        keys.forEach(k => {
+            const g = this.library[k];
+            const prog = this.gameProgress[g.id] || { stage: 'stations', station: 1, unlocked: [], completed: false };
+            const isCompleted = prog.completed === true;
 
-        const card = document.createElement('div');
-        card.className = "game-thumb-card";
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="badge">${g.region || 'Szenario'}</span>
-                ${isCompleted ? '<span class="badge" style="color:#f59e0b; border-color:#f59e0b;">🏆 SPIEL GESCHAFFT</span>' : ''}
-                ${isStarted ? '<span class="badge" style="color:#22c55e;">FORTSCHRITT AKTIV</span>' : ''}
-            </div>
-            <h2 style="font-size:1.15rem; margin-top:2px;">${g.title}</h2>
-            <p style="font-size:0.85rem; color:var(--text-muted);">${g.subtitle || ''}</p>
-            ${g.previewImage ? `<img class="preview-image" style="height:140px;" src="${g.previewImage}" alt="${g.title}">` : ''}
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-                ${isCompleted ? 'Alle Rätsel erfolgreich gelöst!' : `Station ${prog.station} von ${g.stations.length}`}
-            </div>
-        `;
-        card.onclick = () => this.openGameMenu(g.id);
-        container.appendChild(card);
-    });
-},
+            const card = document.createElement('div');
+            card.className = "game-thumb-card";
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="badge">${g.region || 'Szenario'}</span>
+                    ${isCompleted ? '<span class="badge" style="color:#f59e0b; border-color:#f59e0b;">🏆 GESCHAFFT</span>' : ''}
+                </div>
+                <h2 style="font-size:1.15rem; margin-top:2px;">${g.title}</h2>
+                <p style="font-size:0.85rem; color:var(--text-muted);">${g.subtitle || ''}</p>
+                ${g.previewImage ? `<img class="preview-image" style="height:140px;" src="${g.previewImage}" alt="${g.title}">` : ''}
+            `;
+            card.onclick = () => this.openGameMenu(g.id);
+            container.appendChild(card);
+        });
+    },
+
     openGameMenu(gameId) {
         this.previewGameId = gameId;
         const g = this.getCurrentGameContext();
         if (!g) return;
 
         if (g.theme) UI.applyGameTheme(g.theme);
-
-        const prog = this.gameProgress[gameId] || { station: 1, unlocked: [], penalties: 0 };
-        const isStarted = prog.station > 1 || prog.unlocked.length > 0;
 
         document.getElementById('gm-title').innerText = g.title;
         document.getElementById('gm-sub').innerText = g.subtitle || '';
@@ -513,35 +530,26 @@ const App = {
             img.src = g.previewImage;
             img.classList.remove('hidden');
         } else {
-            img.classList.add('hidden');
-        }
-
-        const progBadge = document.getElementById('gm-progress-badge');
-        const btnContinue = document.getElementById('btn-gm-continue');
-        const lblContinue = document.getElementById('lbl-gm-continue');
-
-        if (isStarted) {
-            progBadge.innerText = `Station ${prog.station} aktiv`;
-            progBadge.classList.remove('hidden');
-            lblContinue.innerText = `Spielstand fortsetzen (Station ${prog.station})`;
-        } else {
-            progBadge.classList.add('hidden');
-            lblContinue.innerText = `Spiel starten`;
+            img?.classList.add('hidden');
         }
 
         UI.showView('view-game-menu');
     },
 
     startFreshGame() {
-        const prog = this.gameProgress[this.previewGameId];
-        const isStarted = prog && (prog.station > 1 || prog.unlocked.length > 0);
-
-        if (isStarted && !confirm("Möchtest du den bisherigen Spielstand wirklich verwerfen und bei Station I neu starten?")) {
-            return;
-        }
-
         this.timerSeconds = 0;
-        this.gameProgress[this.previewGameId] = { station: 1, unlocked: [], hint: null, penalties: 0, geofencesTriggered: [], timerSeconds: 0, revealedHints: {} };
+        this.gameProgress[this.previewGameId] = { 
+            stage: 'prologue',
+            prologueIdx: 0,
+            station: 1, 
+            routeSolved: {},
+            unlocked: [], 
+            hint: null, 
+            penalties: 0, 
+            geofencesTriggered: [], 
+            timerSeconds: 0, 
+            revealedHints: {} 
+        };
         this.saveProgress();
         this.openLogin(true);
     },
@@ -565,47 +573,50 @@ const App = {
         const authType = g.authType || "pin";
 
         if (authType === "select") {
-            promptText.innerText = "Wähle deine Rolle:";
-            
-            const pBtn = document.createElement('button');
-            pBtn.className = "btn-main";
-            pBtn.style = "margin-bottom:8px;";
-            pBtn.innerHTML = `<span class="material-symbols-rounded">person</span> ${g.roles.player.name}`;
-            pBtn.onclick = () => this.executeLogin({ type: 'player', name: g.roles.player.name });
-            container.appendChild(pBtn);
+            promptText.innerText = "Wähle deine Rolle für das Spiel:";
 
-            if (g.roles.guardians) {
-                g.roles.guardians.forEach(gh => {
-                    const gBtn = document.createElement('button');
-                    gBtn.className = "btn-sub";
-                    gBtn.style = "margin-bottom:8px;";
-                    gBtn.innerHTML = `<span class="material-symbols-rounded">shield</span> ${gh.name}`;
-                    gBtn.onclick = () => this.executeLogin({ type: 'guardian', name: gh.name, note: gh.note });
-                    container.appendChild(gBtn);
+            if (g.cast && Array.isArray(g.cast)) {
+                g.cast.forEach(c => {
+                    const b = document.createElement('div');
+                    b.className = "game-thumb-card";
+                    b.style = "cursor:pointer; margin-bottom:12px; padding:12px; border:1px solid var(--border);";
+                    b.innerHTML = `
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <img src="${c.avatar}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid var(--accent);">
+                            <div>
+                                <strong style="color:var(--accent); font-size:1rem;">${c.name}</strong><br>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">${c.role}</span>
+                            </div>
+                        </div>
+                        <p style="font-size:0.8rem; margin-top:8px; line-height:1.4;">${c.bio || ''}</p>
+                    `;
+                    b.onclick = () => this.executeLogin({ id: c.id, type: c.id === 'player' ? 'player' : 'guardian', name: c.name, roleTitle: c.role });
+                    container.appendChild(b);
                 });
             }
 
-            const aBtn = document.createElement('button');
-            aBtn.className = "btn-sub";
-            aBtn.innerHTML = `<span class="material-symbols-rounded">tune</span> ${g.roles.admin.name}`;
-            aBtn.onclick = () => {
-                const pin = prompt("Admin-Code eingeben:");
-                if (String(pin).trim() === String(g.roles.admin.pin).trim()) {
-                    this.executeLogin({ type: 'admin', name: g.roles.admin.name });
+            const adm = document.createElement('button');
+            adm.className = "btn-sub";
+            adm.style = "margin-top:10px;";
+            adm.innerHTML = `<span class="material-symbols-rounded">tune</span> ${g.roles?.admin?.name || 'Spielleitung (Admin)'}`;
+            adm.onclick = () => {
+                const p = prompt("Admin-Code eingeben:");
+                if (String(p).trim() === String(g.roles?.admin?.pin || '1964').trim()) {
+                    this.executeLogin({ id: 'admin', type: 'admin', name: g.roles?.admin?.name || 'Admin' });
                 } else alert("Falscher Admin-Code!");
             };
-            container.appendChild(aBtn);
+            container.appendChild(adm);
 
         } else if (authType === "password") {
             promptText.innerText = "Gib das geheime Losungswort ein:";
             container.innerHTML = `
-                <input type="text" id="input-auth-field" class="clean-input" placeholder="Losungswort..." style="text-align:center;" autocomplete="off" autocorrect="off" spellcheck="false">
+                <input type="text" id="input-auth-field" class="clean-input" placeholder="Losungswort..." style="text-align:center;" autocomplete="off">
                 <button onclick="App.submitLoginText()" class="btn-main"><span class="material-symbols-rounded">key</span> Bestätigen</button>
             `;
         } else {
             promptText.innerText = "Gib deinen Rollen-Code ein:";
             container.innerHTML = `
-               <input type="text" id="input-auth-field" class="clean-input" placeholder="••••" inputmode="numeric" style="text-align:center; font-size:1.4rem; letter-spacing:4px;" autocomplete="off" autocorrect="off">
+               <input type="text" id="input-auth-field" class="clean-input" placeholder="••••" inputmode="numeric" style="text-align:center; font-size:1.4rem; letter-spacing:4px;" autocomplete="off">
                 <button onclick="App.submitLoginPin()" class="btn-main"><span class="material-symbols-rounded">lock_open</span> Einloggen</button>
             `;
 
@@ -616,7 +627,6 @@ const App = {
             help.innerHTML = hHtml;
         }
 
-        document.getElementById('login-feedback').innerText = "";
         UI.showView('view-login');
     },
 
@@ -626,12 +636,12 @@ const App = {
         const r = g.roles;
 
         if (val === String(r.player.pin).replace(/\D/g, '')) {
-            this.executeLogin({ type: 'player', name: r.player.name });
+            this.executeLogin({ id: 'player', type: 'player', name: r.player.name });
         } else if (val === String(r.admin.pin).replace(/\D/g, '')) {
-            this.executeLogin({ type: 'admin', name: r.admin.name });
+            this.executeLogin({ id: 'admin', type: 'admin', name: r.admin.name });
         } else if (r.guardians) {
             const found = r.guardians.find(x => String(x.pin).replace(/\D/g, '') === val);
-            if (found) this.executeLogin({ type: 'guardian', name: found.name, note: found.note });
+            if (found) this.executeLogin({ id: found.id || 'guardian', type: 'guardian', name: found.name, note: found.note });
             else document.getElementById('login-feedback').innerText = "Falscher PIN!";
         } else {
             document.getElementById('login-feedback').innerText = "Falscher PIN!";
@@ -644,9 +654,9 @@ const App = {
         const r = g.roles;
 
         if (val === String(r.player.pin).trim().toUpperCase()) {
-            this.executeLogin({ type: 'player', name: r.player.name });
+            this.executeLogin({ id: 'player', type: 'player', name: r.player.name });
         } else if (val === String(r.admin.pin).trim().toUpperCase()) {
-            this.executeLogin({ type: 'admin', name: r.admin.name });
+            this.executeLogin({ id: 'admin', type: 'admin', name: r.admin.name });
         } else {
             document.getElementById('login-feedback').innerText = "Ungültiges Losungswort!";
         }
@@ -658,7 +668,18 @@ const App = {
         this.failedAttempts = 0;
 
         if (!this.gameProgress[this.activeGameId]) {
-            this.gameProgress[this.activeGameId] = { station: 1, unlocked: [], hint: null, penalties: 0, geofencesTriggered: [], timerSeconds: 0, revealedHints: {} };
+            this.gameProgress[this.activeGameId] = { 
+                stage: 'prologue',
+                prologueIdx: 0,
+                station: 1, 
+                routeSolved: {},
+                unlocked: [], 
+                hint: null, 
+                penalties: 0, 
+                geofencesTriggered: [], 
+                timerSeconds: 0, 
+                revealedHints: {} 
+            };
             this.saveProgress();
         }
 
@@ -682,15 +703,15 @@ const App = {
 
     buildDynamicBottomNav(game) {
         const nav = document.getElementById('game-bottom-nav');
+        if (!nav) return;
         nav.innerHTML = "";
 
-        const defaultTabs = [
+        const tabs = (game.navigation && Array.isArray(game.navigation)) ? game.navigation : [
             { id: 'view-station', label: 'Station', icon: 'explore' },
             { id: 'view-map', label: 'Karte', icon: 'map' },
-            { id: 'view-dossier', label: 'Akte', icon: 'folder_open' }
+            { id: 'view-dossier', label: 'Akte', icon: 'folder_open' },
+            { id: 'view-story', label: 'Chronik', icon: 'menu_book' }
         ];
-
-        const tabs = (game.navigation && Array.isArray(game.navigation)) ? game.navigation : defaultTabs;
 
         tabs.forEach(t => {
             const btn = document.createElement('button');
@@ -720,37 +741,56 @@ const App = {
         }
     },
 
-    deleteCurrentGame() {
-        if (!this.previewGameId) return;
-        const g = this.library[this.previewGameId];
-        if (confirm(`Möchtest du '${g.title}' wirklich aus deiner Bibliothek löschen?`)) {
-            delete this.library[this.previewGameId];
-            delete this.gameProgress[this.previewGameId];
-            this.saveLibrary();
-            this.saveProgress();
-            this.renderHomeGames();
-            this.showHome();
-        }
-    },
-
     /* ========================================================
-       3. STATIONEN, RÄTSEL-ENGINES & CRYPTEX
+       3. STATIONEN, PROLOG & RÄTSEL-ENGINE (2-STUFIG + AUDIO)
        ======================================================== */
     renderStation() {
         const g = this.getActiveGame();
         if (!g) return;
         const prog = this.gameProgress[this.activeGameId];
-        const st = g.stations.find(s => s.id === prog.station);
 
+        // 🟢 FALL 1: PROLOG-PHASE
+        if (g.prologue && prog.stage === 'prologue') {
+            const pQuestions = g.prologue.questions || [];
+            const idx = prog.prologueIdx || 0;
+
+            if (idx >= pQuestions.length) {
+                prog.stage = 'stations';
+                prog.station = 1;
+                this.saveProgress();
+                this.renderStation();
+                return;
+            }
+
+            const pItem = pQuestions[idx];
+            document.getElementById('st-badge').innerText = `PROLOG (${idx + 1}/${pQuestions.length})`;
+            document.getElementById('st-location').innerText = "Vorbereitung zu Hause";
+            document.getElementById('st-title').innerText = pItem.title;
+            document.getElementById('st-story').innerText = idx === 0 && g.prologue.intro ? g.prologue.intro.text : pItem.storyUnlocked;
+
+            const mediaBox = document.getElementById('st-media-box');
+            mediaBox.innerHTML = "";
+
+            if (idx === 0 && g.prologue.intro) {
+                this.playNarrative(g.prologue.intro.audio, g.prologue.intro.ttsText);
+            }
+
+            document.getElementById('st-question').innerText = pItem.riddle.question;
+            this.renderRiddleInput(pItem.riddle);
+            this.renderAdminDebugBar(pItem.riddle, true);
+            return;
+        }
+
+        // 🟢 FALL 2: REGULÄRE HARZ-STATIONEN
+        const st = g.stations.find(s => s.id === prog.station);
         if (!st) {
             this.showVictoryScreen();
             return;
         }
 
         document.getElementById('st-badge').innerText = st.roman || `Station ${st.id}`;
-        document.getElementById('st-location').innerText = st.location || "";
+        document.getElementById('st-location').innerText = st.targetLocation || st.location || "";
         document.getElementById('st-title').innerText = st.title;
-        document.getElementById('st-story').innerText = st.story;
 
         const mediaBox = document.getElementById('st-media-box');
         mediaBox.innerHTML = "";
@@ -758,15 +798,99 @@ const App = {
         if (st.audio) mediaBox.innerHTML += `<audio controls src="${st.audio}" style="width:100%; margin-top:8px; height:36px;"></audio>`;
         if (st.video) mediaBox.innerHTML += `<video controls src="${st.video}" style="width:100%; border-radius:12px; margin-top:8px;"></video>`;
 
-        document.getElementById('st-question').innerText = st.riddle.question;
+        this.playNarrative(st.audio, st.ttsText);
+
+        const isRouteDone = prog.routeSolved && prog.routeSolved[st.id];
+        const isArrived = prog.geofencesTriggered && prog.geofencesTriggered.includes(st.id);
+
+        // STUFE 1: WEGWEISER-RÄTSEL ("Wo geht es hin?")
+        if (st.routeRiddle && !isRouteDone) {
+            document.getElementById('st-story').innerHTML = `
+                <div style="background:rgba(46,125,50,0.15); border-left:3px solid var(--accent); padding:10px; border-radius:6px; margin-bottom:12px;">
+                    🧭 <strong>Etappe 1: Wegweiser entschlüsseln</strong><br>Findet heraus, an welchen realen Ort im Harz die nächste Fährte führt!
+                </div>
+            `;
+            document.getElementById('st-question').innerText = st.routeRiddle.question;
+            this.renderRiddleInput(st.routeRiddle);
+            this.renderAdminDebugBar(st.routeRiddle, false);
+            return;
+        }
+
+        // STUFE 2: ANKUNFTSSPERRE
+        if (!isArrived && st.unlock) {
+            document.getElementById('st-story').innerHTML = `
+                <div style="text-align:center; padding:24px 12px; background:rgba(0,0,0,0.3); border-radius:14px; border:1px dashed var(--accent);">
+                    <span class="material-symbols-rounded" style="font-size:48px; color:var(--accent);">location_on</span>
+                    <h3 style="margin:8px 0; color:#fff;">Zielort: ${st.targetLocation}</h3>
+                    <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;">
+                        Die Station öffnet sich automatisch, sobald ihr euch dem Zielort nähert (Geofence aktiv).
+                    </p>
+                    <button onclick="UI.openToolView('scanner')" class="btn-sub" style="margin-top:12px;">
+                        <span class="material-symbols-rounded">qr_code_scanner</span> Vor-Ort-QR scannen
+                    </button>
+                </div>
+            `;
+            document.getElementById('st-question').innerText = "";
+            document.getElementById('quiz-inputs').innerHTML = "";
+            this.renderAdminDebugBar({ answer: "Standort-Bypass" }, false, true);
+            return;
+        }
+
+        // STUFE 3: VOR-ORT-HAUPTRÄTSEL
+        document.getElementById('st-story').innerText = st.story;
+
+        const roleKey = this.activeRole?.id || 'player';
+        const roleData = st.roleContent ? st.roleContent[roleKey] : null;
+
+        const roleBox = document.getElementById('hueter-note-text');
+        if (roleBox) {
+            if (roleData) {
+                roleBox.innerHTML = `<strong>${roleData.title}</strong><br>${roleData.instruction}`;
+            } else {
+                roleBox.innerText = st.guardianNote || "Keine spezielle Anweisung.";
+            }
+        }
+
+        const activeRiddle = st.siteRiddle || st.riddle;
+        document.getElementById('st-question').innerText = activeRiddle.question;
+
+        if (!roleData || roleData.showInput !== false || this.activeRole?.type === 'admin') {
+            this.renderRiddleInput(activeRiddle);
+        } else {
+            document.getElementById('quiz-inputs').innerHTML = `
+                <div style="text-align:center; padding:14px; background:rgba(128,128,128,0.06); border-radius:10px; font-size:0.85rem; color:var(--text-muted);">
+                    🔒 Die Eingabe erfolgt auf dem Bildschirm der <strong>Suchenden</strong>. Teile ihr deine Erkenntnisse mit!
+                </div>
+            `;
+        }
+
+        document.getElementById('game-feedback').innerText = "";
+        this.renderAdminDebugBar(activeRiddle, false);
+
+        const hints = this.getStationHints(st);
+        const progHints = (prog.revealedHints && prog.revealedHints[st.id]) || 0;
+        if (progHints > 0 && hints.length > 0) {
+            this.updateAutoHintUI(st);
+        } else {
+            document.getElementById('auto-hint-box')?.classList.add('hidden');
+            document.getElementById('auto-hint-text')?.classList.add('hidden');
+        }
+
+        if (st.triggerCall) {
+            setTimeout(() => {
+                this.triggerSimulatedCall(st.triggerCall.caller || 'Zentrale', st.triggerCall.message);
+            }, 1200);
+        }
+    },
+
+    renderRiddleInput(riddle) {
         const wrap = document.getElementById('quiz-inputs');
         wrap.innerHTML = "";
+        const rType = riddle.type || "text";
 
-        const rType = st.riddle.type || "text";
-
-        // 1. Visuelles Vorhängeschloss / Cryptex
+        // 1. Cryptex / Lock-Wheels
         if (rType === "lock-wheels") {
-            const rawAns = String(st.riddle.answer || "0000").replace(/\D/g, '');
+            const rawAns = String(riddle.answer || "0000").replace(/\D/g, '');
             const wheelCount = Math.max(1, Math.min(8, rawAns.length || 4));
             if (!this.currentCryptex || this.currentCryptex.length !== wheelCount) {
                 this.currentCryptex = Array(wheelCount).fill(0);
@@ -784,11 +908,11 @@ const App = {
                 <button onclick="App.checkCryptexAnswer()" class="btn-main"><span class="material-symbols-rounded">lock_open</span> Schloss öffnen (${wheelCount}-stellig)</button>
             `;
         }
-        // 2. Timeline / Sortieren
-        else if (rType === "order" && st.riddle.items) {
+        // 2. Timeline / Order
+        else if (rType === "order" && riddle.items) {
             wrap.innerHTML = `
                 <div id="order-list-box">
-                    ${st.riddle.items.map((it, idx) => `
+                    ${riddle.items.map((it, idx) => `
                         <div class="sort-item" data-idx="${idx}">
                             <span>${it}</span>
                             <div>
@@ -801,9 +925,9 @@ const App = {
                 <button onclick="App.checkOrderAnswer()" class="btn-main" style="margin-top:10px;">Reihenfolge prüfen</button>
             `;
         }
-        // 3. Multiple Choice
-        else if (rType === "choice" && st.riddle.options) {
-            st.riddle.options.forEach(opt => {
+        // 3. Choice
+        else if (rType === "choice" && riddle.options) {
+            riddle.options.forEach(opt => {
                 const b = document.createElement('button');
                 b.className = "btn-sub";
                 b.innerText = opt;
@@ -811,32 +935,63 @@ const App = {
                 wrap.appendChild(b);
             });
         }
-        // 4. Standard Freitext
+        // 4. Text
         else {
             wrap.innerHTML = `
-                <input type="text" id="user-answer-inp" class="clean-input" placeholder="Deine Lösung...">
-                <button onclick="App.checkAnswer(document.getElementById('user-answer-inp').value)" class="btn-main">Antwort prüfen</button>
+                <input type="text" id="user-answer-inp" class="clean-input" placeholder="Lösungswort oder Code..." autocomplete="off">
+                <button onclick="App.checkAnswer(document.getElementById('user-answer-inp').value)" class="btn-main">Bestätigen</button>
             `;
         }
+    },
 
-        document.getElementById('game-feedback').innerText = "";
-        document.getElementById('hueter-note-text').innerText = st.guardianNote || "Keine spezielle Anweisung.";
+    /* 🛠️ ADMIN-TESTSPIEL-MODUS (GOD MODE) */
+    renderAdminDebugBar(riddle, isPrologue = false, isArrivalLock = false) {
+        if (!this.activeRole || this.activeRole.type !== 'admin') return;
+        const wrap = document.getElementById('quiz-inputs');
+        const debugBox = document.createElement('div');
+        debugBox.style = "background:rgba(239,68,68,0.12); border:1px solid #ef4444; border-radius:10px; padding:10px; margin-top:14px; font-size:0.8rem;";
 
-        const hints = this.getStationHints(st);
-        const progHints = (prog.revealedHints && prog.revealedHints[st.id]) || 0;
-        if (progHints > 0 && hints.length > 0) {
-            this.updateAutoHintUI(st);
+        if (isArrivalLock) {
+            debugBox.innerHTML = `
+                <strong style="color:#ef4444;">🛠️ Admin-Simulator:</strong><br>
+                <button onclick="App.simulateGeofenceArrival()" class="btn-sub" style="margin-top:6px; font-size:0.75rem; border-color:#ef4444; color:#ef4444;">
+                    📍 Ankunft vor Ort simulieren (Geofence Bypass)
+                </button>
+            `;
         } else {
-            const autoBox = document.getElementById('auto-hint-box');
-            if (autoBox) autoBox.classList.add('hidden');
-            const autoTxt = document.getElementById('auto-hint-text');
-            if (autoTxt) autoTxt.classList.add('hidden');
+            debugBox.innerHTML = `
+                <strong style="color:#ef4444;">🛠️ Admin God-Mode:</strong> Lösung: <strong style="color:#fff;">${riddle.answer}</strong><br>
+                <button onclick="App.checkAnswer('${riddle.answer}')" class="btn-sub" style="margin-top:6px; font-size:0.75rem; border-color:#ef4444; color:#ef4444;">
+                    ⚡ 1-Klick-Lösung einsetzen
+                </button>
+            `;
         }
+        wrap.appendChild(debugBox);
+    },
 
-        if (st.triggerCall) {
-            setTimeout(() => {
-                this.triggerSimulatedCall(st.triggerCall.caller || 'Zentrale', st.triggerCall.message);
-            }, 1200);
+    simulateGeofenceArrival() {
+        const prog = this.gameProgress[this.activeGameId];
+        if (!prog.geofencesTriggered) prog.geofencesTriggered = [];
+        if (!prog.geofencesTriggered.includes(prog.station)) {
+            prog.geofencesTriggered.push(prog.station);
+            this.saveProgress();
+            alert("📍 Simulator: Ankunft am Zielort erfolgreich simuliert!");
+            this.renderStation();
+        }
+    },
+
+    playNarrative(audioUrl, ttsText) {
+        if (isMuted) return;
+        if (audioUrl) {
+            const a = new Audio(audioUrl);
+            a.play().catch(()=>{});
+        } else if (ttsText && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(ttsText);
+            u.lang = 'de-DE';
+            u.rate = 0.88;
+            u.pitch = 0.9;
+            window.speechSynthesis.speak(u);
         }
     },
 
@@ -855,12 +1010,13 @@ const App = {
         const g = this.getActiveGame();
         const prog = this.gameProgress[this.activeGameId];
         const st = g.stations.find(s => s.id === prog.station);
+        const riddle = st.siteRiddle || st.riddle;
         const targetIdx = idx + dir;
 
-        if (targetIdx >= 0 && targetIdx < st.riddle.items.length) {
-            const temp = st.riddle.items[idx];
-            st.riddle.items[idx] = st.riddle.items[targetIdx];
-            st.riddle.items[targetIdx] = temp;
+        if (targetIdx >= 0 && targetIdx < riddle.items.length) {
+            const temp = riddle.items[idx];
+            riddle.items[idx] = riddle.items[targetIdx];
+            riddle.items[targetIdx] = temp;
             this.renderStation();
         }
     },
@@ -868,7 +1024,8 @@ const App = {
         const g = this.getActiveGame();
         const prog = this.gameProgress[this.activeGameId];
         const st = g.stations.find(s => s.id === prog.station);
-        this.checkAnswer(st.riddle.items.join(';'));
+        const riddle = st.siteRiddle || st.riddle;
+        this.checkAnswer(riddle.items.join(';'));
     },
 
     getActiveGame() {
@@ -883,10 +1040,7 @@ const App = {
         s = s.replace(/\s+/g, ' ').trim();
         const articles = ['der ', 'die ', 'das ', 'ein ', 'eine ', 'einen ', 'einem ', 'einer '];
         for (const art of articles) {
-            if (s.startsWith(art)) {
-                s = s.slice(art.length).trim();
-                break;
-            }
+            if (s.startsWith(art)) { s = s.slice(art.length).trim(); break; }
         }
         return s;
     },
@@ -894,38 +1048,70 @@ const App = {
     checkAnswer(val) {
         const g = this.getActiveGame();
         const prog = this.gameProgress[this.activeGameId];
-        const st = g.stations.find(s => s.id === prog.station);
         const fb = document.getElementById('game-feedback');
 
+        // PROLOG PRÜFEN
+        if (prog.stage === 'prologue') {
+            const pItem = g.prologue.questions[prog.prologueIdx];
+            const cleanUser = String(val||"").trim().toUpperCase();
+            const cleanCorr = String(pItem.riddle.answer).trim().toUpperCase();
+
+            if (cleanUser === cleanCorr || (pItem.riddle.acceptedAnswers && pItem.riddle.acceptedAnswers.map(x=>String(x).toUpperCase()).includes(cleanUser))) {
+                this.playAudioTone('success');
+                prog.prologueIdx = (prog.prologueIdx || 0) + 1;
+                this.saveProgress();
+                fb.innerText = "Prolog-Siegel gebrochen!";
+                setTimeout(() => this.renderStation(), 600);
+            } else {
+                this.playAudioTone('error');
+                fb.innerText = "Nicht ganz richtig.";
+            }
+            return;
+        }
+
+        // REGULÄRE STATION PRÜFEN
+        const st = g.stations.find(s => s.id === prog.station);
+        const isRouteDone = prog.routeSolved && prog.routeSolved[st.id];
+        const riddle = (!isRouteDone && st.routeRiddle) ? st.routeRiddle : (st.siteRiddle || st.riddle);
+
         const cleanUser = String(val || "").trim().toUpperCase();
-        const cleanCorrect = String(st.riddle.answer || "").trim().toUpperCase();
+        const cleanCorrect = String(riddle.answer || "").trim().toUpperCase();
         const normUser = this.normalizeAnswer(val);
-        const normCorrect = this.normalizeAnswer(st.riddle.answer);
+        const normCorrect = this.normalizeAnswer(riddle.answer);
 
         let isCorrect = (cleanUser === cleanCorrect) || (normUser.length > 0 && normUser === normCorrect);
-        if (!isCorrect && st.riddle.acceptedAnswers && Array.isArray(st.riddle.acceptedAnswers)) {
-            isCorrect = st.riddle.acceptedAnswers.some(ans => {
-                return String(ans).trim().toUpperCase() === cleanUser || (normUser.length > 0 && this.normalizeAnswer(ans) === normUser);
-            });
+        if (!isCorrect && riddle.acceptedAnswers) {
+            isCorrect = riddle.acceptedAnswers.some(ans => String(ans).trim().toUpperCase() === cleanUser || this.normalizeAnswer(ans) === normUser);
         }
 
         if (isCorrect) {
             this.playAudioTone('success');
             UI.vibrate([70, 50, 70]);
             fb.style.color = "#22c55e";
-            fb.innerText = "Richtig gelöst! Akte aktualisiert.";
-            this.failedAttempts = 0;
 
+            // Wenn Wegweiser gelöst wurde:
+            if (!isRouteDone && st.routeRiddle) {
+                if (!prog.routeSolved) prog.routeSolved = {};
+                prog.routeSolved[st.id] = true;
+                this.saveProgress();
+                fb.innerText = "Zielort enttarnt! Pin auf der Karte aktiviert.";
+                setTimeout(() => {
+                    this.renderStation();
+                    this.initOrUpdateMap();
+                }, 800);
+                return;
+            }
+
+            // Haupträtsel vor Ort gelöst:
+            fb.innerText = "Richtig gelöst! Akte aktualisiert.";
             if (!prog.unlocked.includes(st.id)) prog.unlocked.push(st.id);
 
             setTimeout(() => {
                 if (prog.station < g.stations.length) {
                     prog.station++;
-                    prog.hint = null;
                     this.saveProgress();
                     this.renderStation();
                     this.renderDossier();
-                    this.renderLiveHint();
                 } else {
                     this.showVictoryScreen();
                 }
@@ -935,7 +1121,7 @@ const App = {
             UI.vibrate(200);
             this.failedAttempts++;
             fb.style.color = "var(--accent)";
-            fb.innerText = "Leider falsch! Versuche es noch einmal.";
+            fb.innerText = "Leider falsch! Versucht es noch einmal.";
             const hints = this.getStationHints(st);
             if (this.failedAttempts >= 3 && hints.length > 0) {
                 this.updateAutoHintUI(st);
@@ -944,13 +1130,11 @@ const App = {
     },
 
     getStationHints(st) {
-        if (!st || !st.riddle) return [];
-        if (Array.isArray(st.riddle.hints) && st.riddle.hints.length > 0) {
-            return st.riddle.hints.filter(h => !!h);
-        }
-        if (st.riddle.hint) {
-            return [st.riddle.hint];
-        }
+        if (!st) return [];
+        const r = st.siteRiddle || st.riddle;
+        if (!r) return [];
+        if (Array.isArray(r.hints) && r.hints.length > 0) return r.hints.filter(h => !!h);
+        if (r.hint) return [r.hint];
         return [];
     },
 
@@ -1014,17 +1198,19 @@ const App = {
         const g = this.getActiveGame();
         const prog = this.gameProgress[this.activeGameId];
         const st = g.stations.find(s => s.id === prog.station);
+        const r = st.siteRiddle || st.riddle;
 
-        this.timerSeconds += 600; // +10 Min Strafzeit!
+        this.timerSeconds += 600;
         prog.penalties = (prog.penalties || 0) + 10;
         this.saveProgress();
 
         const box = document.getElementById('walkthrough-solution-box');
-        box.innerText = `Lösung für Station ${st.id}: ${st.riddle.answer}`;
-        box.classList.remove('hidden');
-        document.getElementById('btn-reveal-solution').classList.add('hidden');
-        const advBtn = document.getElementById('btn-advance-solution');
-        if (advBtn) advBtn.classList.remove('hidden');
+        if (box) {
+            box.innerText = `Lösung für Station ${st.id}: ${r.answer}`;
+            box.classList.remove('hidden');
+        }
+        document.getElementById('btn-reveal-solution')?.classList.add('hidden');
+        document.getElementById('btn-advance-solution')?.classList.remove('hidden');
         alert("⚠️ 10 Minuten Strafzeit auf der Missionsuhr addiert!");
     },
 
@@ -1042,38 +1228,61 @@ const App = {
 
         if (prog.station < g.stations.length) {
             prog.station++;
-            prog.hint = null;
             this.saveProgress();
             this.renderStation();
             this.renderDossier();
-            this.renderLiveHint();
             UI.showView('view-station');
         } else {
             this.showVictoryScreen();
         }
     },
 
+    renderChronicle() {
+        const g = this.getActiveGame();
+        const prog = this.gameProgress[this.activeGameId];
+        const container = document.getElementById('view-story');
+        if (!container || !g) return;
+
+        let medHTML = `
+            <div style="text-align:center; padding:16px;">
+                <h2 style="color:var(--accent);">Das Ahnensiegel</h2>
+                <div style="font-size:3rem; margin:10px 0;">🔮</div>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Das Siegel bündelt sich mit jedem gelösten Rätsel.</p>
+            </div>
+        `;
+
+        if (g.prologue && g.prologue.questions) {
+            medHTML += `<h3 style="margin-top:16px; border-bottom:1px solid var(--border); padding-bottom:6px;">Aufgedeckte Vorgeschichte:</h3>`;
+            const max = prog.stage === 'stations' ? g.prologue.questions.length : (prog.prologueIdx || 0);
+            for (let i = 0; i < max; i++) {
+                const q = g.prologue.questions[i];
+                medHTML += `
+                    <div style="background:rgba(128,128,128,0.06); padding:10px; border-radius:8px; margin-top:8px;">
+                        <strong>${q.title}</strong><br><small style="color:var(--text-muted);">${q.storyUnlocked}</small>
+                    </div>
+                `;
+            }
+        }
+        container.innerHTML = medHTML;
+    },
+
     /* ========================================================
-       4. SIMULIERTER ANRUF (WEB AUDIO KLINGELTON)
+       4. SIMULIERTER ANRUF
        ======================================================== */
     triggerSimulatedCall(callerName, voiceMessage) {
         this.incomingCallData = { callerName, voiceMessage };
         document.getElementById('call-caller-name').innerText = callerName;
         document.getElementById('call-status-label').innerText = "Eingehender Funkspruch...";
-        document.getElementById('call-action-btns').classList.remove('hidden');
-        document.getElementById('call-overlay').classList.add('active');
+        document.getElementById('call-action-btns')?.classList.remove('hidden');
+        document.getElementById('call-overlay')?.classList.add('active');
 
         UI.vibrate([500, 200, 500, 200, 500]);
         this.startRingtone();
     },
 
     getAudioContext() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         return audioCtx;
     },
 
@@ -1102,13 +1311,16 @@ const App = {
     acceptCall() {
         this.stopRingtone();
         document.getElementById('call-status-label').innerText = "Verbunden...";
-        document.getElementById('call-action-btns').innerHTML = `
-            <button onclick="App.rejectCall()" class="icon-btn" style="width:65px; height:65px; background:#ef4444; color:#fff;">
-                <span class="material-symbols-rounded" style="font-size:32px;">call_end</span>
-            </button>
-        `;
+        const btns = document.getElementById('call-action-btns');
+        if (btns) {
+            btns.innerHTML = `
+                <button onclick="App.rejectCall()" class="icon-btn" style="width:65px; height:65px; background:#ef4444; color:#fff;">
+                    <span class="material-symbols-rounded" style="font-size:32px;">call_end</span>
+                </button>
+            `;
+        }
 
-        if ('speechSynthesis' in window && this.incomingCallData.voiceMessage) {
+        if ('speechSynthesis' in window && this.incomingCallData?.voiceMessage) {
             const utter = new SpeechSynthesisUtterance(this.incomingCallData.voiceMessage);
             utter.lang = 'de-DE';
             utter.pitch = 0.8;
@@ -1123,7 +1335,7 @@ const App = {
     rejectCall() {
         this.stopRingtone();
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-        document.getElementById('call-overlay').classList.remove('active');
+        document.getElementById('call-overlay')?.classList.remove('active');
     },
 
     playAudioTone(type) {
@@ -1150,7 +1362,7 @@ const App = {
     },
 
     /* ========================================================
-       5. MAP, GPS-PUNKT & GEOFENCING
+       5. MAP & GPS-PUNKT
        ======================================================== */
     initOrUpdateMap() {
         const g = this.getActiveGame();
@@ -1158,7 +1370,7 @@ const App = {
 
         const prog = this.gameProgress[this.activeGameId];
         const currentStation = g.stations.find(s => s.id === prog.station) || g.stations[0];
-        const centerCoords = currentStation.coords || [51.75, 11.05];
+        const centerCoords = currentStation.coords || [51.8732, 11.0425];
 
         if (!leafletMap) {
             leafletMap = L.map('game-map').setView(centerCoords, 13);
@@ -1172,16 +1384,16 @@ const App = {
         mapMarkers = [];
 
         g.stations.forEach(s => {
-            if (s.coords) {
-                const isCurrent = (s.id === prog.station);
+            const isRouteUnlocked = prog.routeSolved && prog.routeSolved[s.id];
+            if (s.coords && (isRouteUnlocked || s.id < prog.station)) {
                 const marker = L.marker(s.coords).addTo(leafletMap);
-                marker.bindPopup(`<b>${s.roman}: ${s.title}</b><br>${s.location}`);
-                if (isCurrent) marker.openPopup();
+                marker.bindPopup(`<b>${s.roman}: ${s.title}</b><br>${s.targetLocation || s.location}`);
                 mapMarkers.push(marker);
             }
         });
     },
-startCompass() {
+
+    startCompass() {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             const btn = document.getElementById('btn-compass-perm');
             if (btn) btn.style.display = 'inline-block';
@@ -1189,18 +1401,10 @@ startCompass() {
 
         let lastHeading = null;
         const handleOrient = (e) => {
-            let heading = null;
-
-            if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
-                heading = e.webkitCompassHeading;
-            } else if (e.alpha !== null && e.alpha !== undefined) {
-                heading = (360 - e.alpha) % 360;
-            }
-
+            let heading = e.webkitCompassHeading ?? (e.alpha !== null ? (360 - e.alpha) % 360 : null);
             if (heading !== null && !isNaN(heading)) {
-                if (lastHeading === null) {
-                    lastHeading = heading;
-                } else {
+                if (lastHeading === null) lastHeading = heading;
+                else {
                     let diff = heading - lastHeading;
                     if (diff > 180) diff -= 360;
                     if (diff < -180) diff += 360;
@@ -1210,7 +1414,6 @@ startCompass() {
                 const deg = Math.round(lastHeading);
                 const degEl = document.getElementById('compass-deg');
                 const dirEl = document.getElementById('compass-dir');
-
                 if (degEl && dirEl) {
                     degEl.innerText = deg + "°";
                     const dirs = ["Norden", "Nord-Ost", "Osten", "Süd-Ost", "Süden", "Süd-West", "Westen", "Nord-West"];
@@ -1235,13 +1438,11 @@ startCompass() {
                     const btn = document.getElementById('btn-compass-perm');
                     if (btn) btn.style.display = 'none';
                     this.startCompass();
-                } else {
-                    alert("Zugriff auf Kompass-Sensor verweigert.");
-                }
+                } else alert("Zugriff verweigert.");
             }).catch(console.error);
         }
     },
-   
+
     startGpsTracking() {
         if (!navigator.geolocation) return;
         gpsWatchId = navigator.geolocation.watchPosition((pos) => {
@@ -1258,19 +1459,19 @@ startCompass() {
                 }
             }
 
-            // GEOFENCING AUTO-TRIGGER
             const g = this.getActiveGame();
             const prog = this.gameProgress[this.activeGameId];
-            if (g && prog) {
+            if (g && prog && prog.stage === 'stations') {
                 const st = g.stations.find(s => s.id === prog.station);
-                if (st && st.coords && st.geofenceRadius) {
+                if (st && st.coords && st.unlock?.geofenceRadius) {
                     const dist = this.calcDistance(lat, lng, st.coords[0], st.coords[1]);
                     if (!prog.geofencesTriggered) prog.geofencesTriggered = [];
-                    if (dist <= st.geofenceRadius && !prog.geofencesTriggered.includes(st.id)) {
+                    if (dist <= st.unlock.geofenceRadius && !prog.geofencesTriggered.includes(st.id)) {
                         prog.geofencesTriggered.push(st.id);
                         this.saveProgress();
                         UI.vibrate([100, 100, 100]);
-                        alert(`📍 Geofence erreicht: Ihr seid am Ziel '${st.title}' angekommen!`);
+                        alert(`📍 Ziel erreicht: Ihr seid am Ort '${st.title}' angekommen!`);
+                        this.renderStation();
                     }
                 }
             }
@@ -1286,28 +1487,44 @@ startCompass() {
     },
 
     async requestWakeLock() {
+        try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+    },
+
+    async toggleTorch() {
         try {
-            if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-        } catch(e){}
+            if (!videoTrack) {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                videoTrack = stream.getVideoTracks()[0];
+                await videoTrack.applyConstraints({ advanced: [{ torch: true }] });
+                document.getElementById('btn-tool-torch').style.borderColor = 'var(--accent)';
+                document.getElementById('lbl-tool-torch').innerText = 'Taschenlampe (Ein)';
+            } else {
+                videoTrack.stop();
+                videoTrack = null;
+                document.getElementById('btn-tool-torch').style.borderColor = 'var(--border)';
+                document.getElementById('lbl-tool-torch').innerText = 'Taschenlampe (Aus)';
+            }
+        } catch(err) { alert("Blitzlicht nicht verfügbar."); }
     },
 
     handleScannedCode(text) {
-        const urlMatch = text.match(/[?&]station=(\d+)/);
-        if (urlMatch && this.activeGameId) {
-            const stNum = parseInt(urlMatch[1], 10);
-            this.gameProgress[this.activeGameId].station = stNum;
+        const g = this.getActiveGame();
+        const prog = this.gameProgress[this.activeGameId];
+        const st = g?.stations.find(s => s.id === prog.station);
+
+        if (st && st.unlock && (st.unlock.qrCode === text || text.includes(st.unlock.qrCode))) {
+            if (!prog.geofencesTriggered) prog.geofencesTriggered = [];
+            prog.geofencesTriggered.push(st.id);
             this.saveProgress();
+            alert("✅ Vor-Ort-QR-Code erkannt: Station freigeschaltet!");
             this.renderStation();
-            this.renderDossier();
-            UI.showView('view-station');
-            alert(`Station ${stNum} über QR-Code aktiviert!`);
         } else {
             alert(`Gescannter Code: ${text}`);
         }
     },
 
     /* ========================================================
-       6. FINALE: URKUNDE, LEADERBOARD & KONFETTI
+       6. FINALE: URKUNDE, EPILOG & KONFETTI
        ======================================================== */
     showVictoryScreen() {
         const g = this.getActiveGame();
@@ -1315,10 +1532,10 @@ startCompass() {
 
         this.timerRunning = false;
         prog.completed = true;
-this.saveProgress();
+        this.saveProgress();
         clearInterval(this.timerInterval);
 
-        let rank = "Rang S: Meisterklasse";
+        let rank = "Rang S: Meisterin des Wissens";
         if (prog.penalties > 10 || this.timerSeconds > 7200) rank = "Rang A: Erfahrene Ermittler";
         if (prog.penalties > 20 || this.timerSeconds > 10800) rank = "Rang B: Tapfere Sucher";
 
@@ -1333,66 +1550,77 @@ this.saveProgress();
         this.renderCertificateCanvas(g, rank);
 
         const epBox = document.getElementById('vic-epilogue-box');
-        const epVideo = document.getElementById('vic-epilogue-video-wrap');
-        if (g.epilogueVideo) {
-            epBox.classList.remove('hidden');
-            epVideo.innerHTML = `<video controls src="${g.epilogueVideo}" style="width:100%;"></video>`;
-        } else epBox.classList.add('hidden');
+        if (g.epilogue) {
+            epBox?.classList.remove('hidden');
+            const epWrap = document.getElementById('vic-epilogue-video-wrap');
+            if (epWrap) {
+                epWrap.innerHTML = `
+                    <div style="background:rgba(0,0,0,0.4); padding:16px; border-radius:12px; border-left:3px solid var(--accent); margin-bottom:12px;">
+                        <h3 style="color:var(--accent); font-size:1.1rem;">${g.epilogue.title}</h3>
+                        <p style="font-size:0.9rem; line-height:1.6; margin-top:8px;">${g.epilogue.storyText}</p>
+                    </div>
+                `;
+            }
+            this.playNarrative(g.epilogue.audio, g.epilogue.ttsText);
+        } else if (g.epilogueVideo) {
+            epBox?.classList.remove('hidden');
+            const epWrap = document.getElementById('vic-epilogue-video-wrap');
+            if (epWrap) epWrap.innerHTML = `<video controls src="${g.epilogueVideo}" style="width:100%;"></video>`;
+        } else {
+            epBox?.classList.add('hidden');
+        }
 
         UI.showView('view-victory');
     },
 
-  renderCertificateCanvas(game, rank) {
-    const canvas = document.getElementById('cert-canvas');
-    const ctx = canvas.getContext('2d');
+    renderCertificateCanvas(game, rank) {
+        const canvas = document.getElementById('cert-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
 
-    const drawText = () => {
-        ctx.fillStyle = game.theme?.accent || "#c9a050";
-        ctx.font = "bold 26px serif";
-        ctx.textAlign = "center";
-        ctx.fillText("EHREN-URKUNDE", 300, 65);
+        const drawText = () => {
+            ctx.fillStyle = game.theme?.accent || "#2e7d32";
+            ctx.font = "bold 26px serif";
+            ctx.textAlign = "center";
+            ctx.fillText("EHREN-URKUNDE", 300, 65);
 
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "18px sans-serif";
-        ctx.fillText(game.title, 300, 110);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "18px sans-serif";
+            ctx.fillText(game.title, 300, 110);
 
-        ctx.fillStyle = "#f59e0b";
-        ctx.font = "bold 22px sans-serif";
-        ctx.fillText(rank, 300, 165);
+            ctx.fillStyle = "#f59e0b";
+            ctx.font = "bold 22px sans-serif";
+            ctx.fillText(rank, 300, 165);
 
-        ctx.fillStyle = "#dddddd";
-        ctx.font = "14px sans-serif";
-        ctx.fillText(`Erfolgreich abgeschlossen am ${new Date().toLocaleDateString('de-DE')}`, 300, 220);
-        ctx.fillText(`Gesamtzeit: ${this.formatSeconds(this.timerSeconds)}`, 300, 250);
+            ctx.fillStyle = "#dddddd";
+            ctx.font = "14px sans-serif";
+            ctx.fillText(`Erfolgreich abgeschlossen am ${new Date().toLocaleDateString('de-DE')}`, 300, 220);
+            ctx.fillText(`Gesamtzeit: ${this.formatSeconds(this.timerSeconds)}`, 300, 250);
 
-        ctx.fillStyle = game.theme?.accent || "#e50914";
-        ctx.font = "bold 13px sans-serif";
-        ctx.fillText("✦ escape.labs Master System ✦", 300, 350);
-    };
-
-    // Wenn in der JSON ein eigenes Urkunden-Design hinterlegt ist:
-    if (game.certificateTemplate) {
-        const bgImg = new Image();
-        bgImg.crossOrigin = "anonymous";
-        bgImg.onload = () => {
-            ctx.drawImage(bgImg, 0, 0, 600, 400);
-            drawText();
+            ctx.fillStyle = game.theme?.accent || "#2e7d32";
+            ctx.font = "bold 13px sans-serif";
+            ctx.fillText("✦ Das verschwundene Wissen ✦", 300, 350);
         };
-        bgImg.onerror = () => {
-            ctx.fillStyle = "#141419";
+
+        if (game.certificateTemplate) {
+            const bgImg = new Image();
+            bgImg.crossOrigin = "anonymous";
+            bgImg.onload = () => {
+                ctx.drawImage(bgImg, 0, 0, 600, 400);
+                drawText();
+            };
+            bgImg.onerror = () => {
+                ctx.fillStyle = "#0b1017";
+                ctx.fillRect(0, 0, 600, 400);
+                drawText();
+            };
+            bgImg.src = game.certificateTemplate;
+        } else {
+            ctx.fillStyle = "#0b1017";
             ctx.fillRect(0, 0, 600, 400);
             drawText();
-        };
-        bgImg.src = game.certificateTemplate;
-    } else {
-        ctx.fillStyle = "#141419";
-        ctx.fillRect(0, 0, 600, 400);
-        ctx.strokeStyle = game.theme?.accent || "#c9a050";
-        ctx.lineWidth = 4;
-        ctx.strokeRect(15, 15, 570, 370);
-        drawText();
-    }
-},
+        }
+    },
 
     downloadCertificate() {
         const canvas = document.getElementById('cert-canvas');
@@ -1402,18 +1630,18 @@ this.saveProgress();
         link.click();
     },
 
-
     launchConfetti() {
         const canvas = document.getElementById('confetti-canvas');
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let particles = Array.from({ length: 50 }).map(() => ({
+        let particles = Array.from({ length: 60 }).map(() => ({
             x: Math.random() * canvas.width,
             y: Math.random() * -canvas.height,
             size: Math.random() * 8 + 4,
-            color: ['#e50914', '#c9a050', '#ffffff', '#22c55e'][Math.floor(Math.random()*4)],
+            color: ['#2e7d32', '#c9a050', '#ffffff', '#22c55e'][Math.floor(Math.random()*4)],
             speed: Math.random() * 3 + 2
         }));
 
@@ -1444,17 +1672,15 @@ this.saveProgress();
                 this.updateTimerDisplay();
                 if (this.activeGameId && this.gameProgress[this.activeGameId]) {
                     this.gameProgress[this.activeGameId].timerSeconds = this.timerSeconds;
-                    if (this.timerSeconds % 10 === 0) {
-                        this.saveProgress();
-                    }
+                    if (this.timerSeconds % 10 === 0) this.saveProgress();
                 }
             }
         }, 1000);
     },
     toggleTimer() {
         this.timerRunning = !this.timerRunning;
-        document.getElementById('timer-btn-icon').innerText = this.timerRunning ? 'pause' : 'play_arrow';
-        document.getElementById('timer-btn-label').innerText = this.timerRunning ? 'Pausieren' : 'Weiter';
+        const icon = document.getElementById('timer-btn-icon');
+        if (icon) icon.innerText = this.timerRunning ? 'pause' : 'play_arrow';
     },
     updateTimerDisplay() {
         const el = document.getElementById('timer-display');
@@ -1465,23 +1691,6 @@ this.saveProgress();
         const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
         const s = String(sec % 60).padStart(2, '0');
         return `${h}:${m}:${s}`;
-    },
-
-    async toggleTorch() {
-        try {
-            if (!videoTrack) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                videoTrack = stream.getVideoTracks()[0];
-                await videoTrack.applyConstraints({ advanced: [{ torch: true }] });
-                document.getElementById('btn-tool-torch').style.borderColor = 'var(--accent)';
-                document.getElementById('lbl-tool-torch').innerText = 'Taschenlampe (Ein)';
-            } else {
-                videoTrack.stop();
-                videoTrack = null;
-                document.getElementById('btn-tool-torch').style.borderColor = 'var(--border)';
-                document.getElementById('lbl-tool-torch').innerText = 'Taschenlampe (Aus)';
-            }
-        } catch(err) { alert("Blitzlicht nicht verfügbar."); }
     },
 
     initCanvas() {
@@ -1498,18 +1707,11 @@ this.saveProgress();
             const touch = (e.touches && e.touches.length > 0) ? e.touches[0] : null;
             const cx = touch ? touch.clientX : e.clientX;
             const cy = touch ? touch.clientY : e.clientY;
-            const scaleX = rect.width ? (canvas.width / rect.width) : 1;
-            const scaleY = rect.height ? (canvas.height / rect.height) : 1;
-            return {
-                x: (cx - rect.left) * scaleX,
-                y: (cy - rect.top) * scaleY
-            };
+            return { x: (cx - rect.left) * (canvas.width / rect.width), y: (cy - rect.top) * (canvas.height / rect.height) };
         }
 
         const saveSketch = () => {
-            try {
-                localStorage.setItem('escape_canvas_img', canvas.toDataURL('image/png', 0.7));
-            } catch(e) {}
+            try { localStorage.setItem('escape_canvas_img', canvas.toDataURL('image/png', 0.7)); } catch(e){}
         };
 
         canvas.onmousedown = (e) => { painting = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
@@ -1529,6 +1731,7 @@ this.saveProgress();
 
     renderDossier() {
         const list = document.getElementById('dossier-items');
+        if (!list) return;
         list.innerHTML = "";
         const g = this.getActiveGame();
         if (!g) return;
@@ -1544,7 +1747,7 @@ this.saveProgress();
             if (st && st.dossier) {
                 const div = document.createElement('div');
                 div.style = "background:rgba(128,128,128,0.06); border-left:3px solid var(--accent); padding:12px; margin-bottom:10px; border-radius:8px;";
-                div.innerHTML = `<strong>${st.dossier.title}</strong><br><small style="color:var(--text-muted);">${st.location}</small><p style="margin-top:4px; font-size:0.9rem;">${st.dossier.text}</p>`;
+                div.innerHTML = `<strong>${st.dossier.title}</strong><br><small style="color:var(--text-muted);">${st.targetLocation || st.location}</small><p style="margin-top:4px; font-size:0.9rem;">${st.dossier.text}</p>`;
                 list.appendChild(div);
             }
         });
@@ -1552,15 +1755,14 @@ this.saveProgress();
 
     updateMenu() {
         const inGame = !!this.activeGameId && !!this.activeRole;
-        document.getElementById('menu-hub-content').classList.toggle('hidden', inGame);
-        document.getElementById('menu-game-content').classList.toggle('hidden', !inGame);
+        document.getElementById('menu-hub-content')?.classList.toggle('hidden', inGame);
+        document.getElementById('menu-game-content')?.classList.toggle('hidden', !inGame);
 
-        if (inGame) {
-            document.getElementById('menu-user-status').innerHTML = `Eingeloggt: <strong>${this.activeRole.name}</strong>`;
-            this.renderAdminJumps();
-        } else {
-            document.getElementById('menu-user-status').innerText = "Kein Spiel geöffnet";
+        const status = document.getElementById('menu-user-status');
+        if (status) {
+            status.innerHTML = inGame ? `Eingeloggt: <strong>${this.activeRole.name}</strong>` : "Kein Spiel geöffnet";
         }
+        if (inGame) this.renderAdminJumps();
     },
 
     leaveGame() {
@@ -1583,8 +1785,7 @@ this.saveProgress();
         const input = document.getElementById('hueter-hint-input');
         if (!input) return;
         const v = input.value.trim();
-        if (!v) return;
-        if (!this.activeGameId || !this.gameProgress[this.activeGameId]) return;
+        if (!v || !this.activeGameId || !this.gameProgress[this.activeGameId]) return;
         this.gameProgress[this.activeGameId].hint = v;
         this.saveProgress();
         this.renderLiveHint();
@@ -1596,8 +1797,7 @@ this.saveProgress();
         const input = document.getElementById('admin-hint-input') || document.getElementById('hueter-hint-input');
         if (!input) return;
         const v = input.value.trim();
-        if (!v) return;
-        if (!this.activeGameId || !this.gameProgress[this.activeGameId]) return;
+        if (!v || !this.activeGameId || !this.gameProgress[this.activeGameId]) return;
         this.gameProgress[this.activeGameId].hint = v;
         this.saveProgress();
         this.renderLiveHint();
@@ -1617,18 +1817,20 @@ this.saveProgress();
     },
 
     clearHint() {
-        this.gameProgress[this.activeGameId].hint = null;
-        this.saveProgress();
-        this.renderLiveHint();
+        if (this.activeGameId && this.gameProgress[this.activeGameId]) {
+            this.gameProgress[this.activeGameId].hint = null;
+            this.saveProgress();
+            this.renderLiveHint();
+        }
     },
 
     renderLiveHint() {
         const b = document.getElementById('live-hint-bar');
         const prog = this.gameProgress[this.activeGameId];
-        if (prog && prog.hint) {
+        if (prog && prog.hint && b) {
             b.classList.remove('hidden');
             document.getElementById('live-hint-text').innerText = prog.hint;
-        } else {
+        } else if (b) {
             b.classList.add('hidden');
         }
     },
@@ -1637,10 +1839,11 @@ this.saveProgress();
         if (!this.activeGameId) return;
         const g = this.getActiveGame();
         const box = document.getElementById('admin-jump-list');
+        if (!box) return;
         box.innerHTML = "";
 
-        document.getElementById('admin-game-title').innerText = g.title;
-        document.getElementById('admin-game-sub').innerText = "Missionskontrolle für: " + g.title;
+        const titleEl = document.getElementById('admin-game-title');
+        if (titleEl) titleEl.innerText = g.title;
 
         g.stations.forEach(st => {
             const btn = document.createElement('button');
@@ -1648,6 +1851,7 @@ this.saveProgress();
             btn.innerText = st.roman || `St. ${st.id}`;
             btn.onclick = () => {
                 this.gameProgress[this.activeGameId].station = st.id;
+                this.gameProgress[this.activeGameId].stage = 'stations';
                 if (!this.gameProgress[this.activeGameId].unlocked.includes(st.id)) {
                     this.gameProgress[this.activeGameId].unlocked.push(st.id);
                 }
@@ -1665,7 +1869,18 @@ this.saveProgress();
         if (confirm(`Möchtest du '${g.title}' komplett auf Station I zurücksetzen?`)) {
             this.timerSeconds = 0;
             this.updateTimerDisplay();
-            this.gameProgress[this.activeGameId] = { station: 1, unlocked: [], hint: null, penalties: 0, geofencesTriggered: [], timerSeconds: 0, revealedHints: {} };
+            this.gameProgress[this.activeGameId] = { 
+                stage: 'prologue',
+                prologueIdx: 0,
+                station: 1, 
+                routeSolved: {},
+                unlocked: [], 
+                hint: null, 
+                penalties: 0, 
+                geofencesTriggered: [], 
+                timerSeconds: 0, 
+                revealedHints: {} 
+            };
             this.saveProgress();
             this.renderStation();
             this.renderDossier();
